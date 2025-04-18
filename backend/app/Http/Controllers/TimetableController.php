@@ -17,7 +17,7 @@ class TimetableController extends Controller
 
     public function index()
     {
-        $timetables = Timetable::with(['course', 'teacher', 'classroom'])->get();
+        $timetables = Timetable::with(['course', 'teacher', 'classroom', 'semester.year.filier'])->get();
 
         return response()->json($timetables);
     }
