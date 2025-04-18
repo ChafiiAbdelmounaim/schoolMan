@@ -112,8 +112,11 @@ Route::middleware('auth:sanctum')->group(function () {
         return Timetable::with(['course', 'teacher', 'classroom', 'semester'])->get();
     });
 
+
+
     Route::post('/generate-s1-timetables', [TimetableController::class, 'generateS1Timetables']);
 
 });
 
+Route::get('/emploi', [TimetableController::class, 'index']);
 
