@@ -18,6 +18,7 @@ import Layout from "./pages/Layout.jsx";
 import {LoggedInRoute} from "./components/LoggedInRoute.jsx";
 import Timetable from "./pages/timetables/Timetable.jsx";
 import Display from "./pages/timetables/Display.jsx";
+import Emploi from "./pages/timetables/Emploi.jsx";
 
 
 
@@ -81,6 +82,10 @@ const router = createBrowserRouter([
             {
                 path : "/display",
                 element : <ProtectedRoute><Display /></ProtectedRoute>
+            },
+            {
+                path : "/emploi",
+                element : <ProtectedRoute><Emploi /></ProtectedRoute>
             }
 
         ]
