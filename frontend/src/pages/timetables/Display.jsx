@@ -26,7 +26,7 @@ const Display = () => {
     useEffect(() => {
         setFilteredTimetables(
             timetables.filter(timetable =>
-                timetable.course.name.toLowerCase().includes(searchQuery.toLowerCase())
+                timetable.day.toLowerCase().includes(searchQuery.toLowerCase())
             )
         );
     }, [searchQuery, timetables]);

@@ -16,7 +16,7 @@ class TimetableController extends Controller
 {
     public function generateS1Timetables(Request $request)
     {
-        // Step 1: Fetch all semesters that have 'S1' as semName
+        // Fetch S1 semesters with relationships
         $s1Semesters = Semester::where('semName', 'S1')
             ->with(['year', 'year.filier', 'subjects.teachers', 'subjects'])
             ->get();
@@ -25,7 +25,7 @@ class TimetableController extends Controller
             return response()->json(['message' => 'No S1 semesters found.'], 404);
         }
 
-        // Define basic schedule constraints
+        // School schedule configuration
         $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         $timeSlots = [
             ['start' => '09:00:00', 'end' => '12:00:00'], // Morning
@@ -34,7 +34,6 @@ class TimetableController extends Controller
 
         $generatedCount = 0;
 
-        // Process each semester
         foreach ($s1Semesters as $semester) {
             $subjects = $semester->subjects;
             $classrooms = Classroom::all();
@@ -47,49 +46,66 @@ class TimetableController extends Controller
                 }
 
                 $teacher = $teachers->first();
-                $timeSlot = $timeSlots[0]; // Always use first time slot
 
-                // Try each day until we find an available classroom
+                // Try each day and time slot combination
                 foreach ($daysOfWeek as $day) {
-                    // Find first available classroom for this day
-                    $availableClassroom = null;
-                    foreach ($classrooms as $classroom) {
-                        $isClassroomUsed = Timetable::where('classroom_id', $classroom->id)
+                    foreach ($timeSlots as $timeSlot) {
+                        // Check if semester already has a subject at this day/time
+                        $semesterConflict = Timetable::where('semester_id', $semester->id)
                             ->where('day', $day)
+                            ->where(function($query) use ($timeSlot) {
+                                $query->whereBetween('start_time', [$timeSlot['start'], $timeSlot['end']])
+                                    ->orWhereBetween('end_time', [$timeSlot['start'], $timeSlot['end']]);
+                            })
                             ->exists();
 
-                        if (!$isClassroomUsed) {
-                            $availableClassroom = $classroom;
-                            break;
+                        if ($semesterConflict) {
+                            continue; // Skip to next time slot
                         }
-                    }
 
-                    if ($availableClassroom) {
-                        // Create the timetable entry
-                        Timetable::create([
-                            'course_id' => $subject->id,
-                            'teacher_id' => $teacher->id,
-                            'classroom_id' => $availableClassroom->id,
-                            'semester_id' => $semester->id,
-                            'day' => $day,
-                            'start_time' => $timeSlot['start'],
-                            'end_time' => $timeSlot['end']
-                        ]);
+                        // Find available classroom for this day/time
+                        $availableClassroom = null;
+                        foreach ($classrooms as $classroom) {
+                            $isClassroomBusy = Timetable::where('classroom_id', $classroom->id)
+                                ->where('day', $day)
+                                ->where(function($query) use ($timeSlot) {
+                                    $query->whereBetween('start_time', [$timeSlot['start'], $timeSlot['end']])
+                                        ->orWhereBetween('end_time', [$timeSlot['start'], $timeSlot['end']]);
+                                })
+                                ->exists();
 
-                        $generatedCount++;
-                        break; // Move to next subject after scheduling
+                            if (!$isClassroomBusy) {
+                                $availableClassroom = $classroom;
+                                break;
+                            }
+                        }
+
+                        if ($availableClassroom) {
+                            // Create timetable entry
+                            Timetable::create([
+                                'course_id' => $subject->id,
+                                'teacher_id' => $teacher->id,
+                                'classroom_id' => $availableClassroom->id,
+                                'semester_id' => $semester->id,
+                                'day' => $day,
+                                'start_time' => $timeSlot['start'],
+                                'end_time' => $timeSlot['end']
+                            ]);
+
+                            $generatedCount++;
+                            break 2; // Exit both day and time slot loops
+                        }
                     }
                 }
 
-                // If we couldn't schedule after trying all days, log it
                 if (!$availableClassroom) {
-                    Log::warning("Could not find available classroom for subject: {$subject->name}");
+                    Log::warning("Could not schedule subject {$subject->name} for semester {$semester->id}");
                 }
             }
         }
 
         return response()->json([
-            'message' => 'Timetable generation completed with classroom/day availability check',
+            'message' => 'Timetable generation completed with all constraints',
             'generated_entries' => $generatedCount,
             'data' => $s1Semesters
         ]);
