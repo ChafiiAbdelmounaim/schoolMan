@@ -5,10 +5,14 @@ import Input from "../../components/form/Input.jsx";
 import FormMessage from "../../components/form/FormMessage.jsx";
 import FormControl from "../../components/form/FormControl.jsx";
 import FormLabel from "../../components/form/FormLabel.jsx";
+import { useNavigate } from 'react-router-dom';
+
 
 const Timetable = () => {
 
     // In your Timetable component (React)
+
+    const navigate = useNavigate();
 
     const handleGenerateTimetables = async () => {
         try {
@@ -25,6 +29,7 @@ const Timetable = () => {
             // alert(response.data.message);
             console.log(response.data.data)// Success message from backend
             // console.log(response.data.subjects)// Success message from backend
+            navigate('/emploi');
         } catch (error) {
             console.error("Error generating timetables:", error);
             alert("An error occurred while generating the timetables.");

@@ -28,7 +28,7 @@ class TimetableController extends Controller
 
         try {
             // Fetch S1 semesters with relationships
-            $s1Semesters = Semester::where('semName', 'S1')
+            $s1Semesters = Semester::where('semName', ['S1', 'S2'])
                 ->with(['year', 'year.filier', 'subjects.teachers', 'subjects'])
                 ->get();
 

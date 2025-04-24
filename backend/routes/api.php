@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->group(function (){
             Route::get('/', 'fetchData');
             Route::post('/', 'store');
+            Route::post('/import', 'import');
             Route::delete('/{id}', 'destroy');
             Route::put('/{id}', 'update');
         });
@@ -82,20 +83,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ->group(function (){
             Route::get('/', 'fetchData');
             Route::post('/', 'store');
+            Route::get('/{id}', 'show');
+            Route::post('/import', 'import');
             Route::delete('/{id}', 'destroy');
             Route::put('/{id}', 'update');
+            Route::get('/{id}/subjects', 'getTeacherWithSubjects');
+            Route::post('/{teacher}/attach-subject', 'attachSubject');
+            Route::delete('/{teacher}/detach-subject/{subject}', 'detachSubject');
         });
 
-    // Assign Teachers Routes
-    Route::prefix('teacher-subjects')
-        ->controller(TeacherSubjectController::class)
-        ->group(function () {
-        Route::post('/assign', 'assignTeacher');
-        Route::post('/remove', 'removeTeacher');
-        Route::get('/subject/{subjectId}/teachers', 'getTeachersForSubject');
-        Route::get('/teacher/{teacherId}/subjects', 'getSubjectsForTeacher');
-        Route::get('/assignments', 'getAllAssignments');
-    });
 
     // Classrooms Routes
     Route::prefix('/classrooms')
@@ -119,4 +115,6 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/emploi', [TimetableController::class, 'index']);
+
+
 

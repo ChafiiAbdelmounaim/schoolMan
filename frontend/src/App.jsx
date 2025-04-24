@@ -11,14 +11,13 @@ import Year from "./pages/cruds/Year.jsx";
 import Semesters from "./pages/cruds/Semesters.jsx";
 import Students from "./pages/cruds/Students.jsx";
 import Teachers from "./pages/cruds/Teachers.jsx";
-import AssignTeacher from "./pages/cruds/AssignTeacher.jsx";
-import TestCombobox from "./pages/cruds/TestCombobox.jsx";
 import Classrooms from "./pages/cruds/Classrooms.jsx";
 import Layout from "./pages/Layout.jsx";
 import {LoggedInRoute} from "./components/LoggedInRoute.jsx";
 import Timetable from "./pages/timetables/Timetable.jsx";
 import Display from "./pages/timetables/Display.jsx";
 import Emploi from "./pages/timetables/Emploi.jsx";
+import ViewTeacher from "./pages/cruds/ViewTeacher.jsx";
 
 
 
@@ -64,16 +63,12 @@ const router = createBrowserRouter([
                 element : <ProtectedRoute><Teachers /></ProtectedRoute>
             },
             {
-                path : "/assignteacher",
-                element : <ProtectedRoute><AssignTeacher /></ProtectedRoute>
+                path : "/teachers/:id",
+                element : <ProtectedRoute><ViewTeacher /></ProtectedRoute>
             },
             {
                 path : "/classrooms",
                 element : <ProtectedRoute><Classrooms /></ProtectedRoute>
-            },
-            {
-                path : "/test",
-                element : <ProtectedRoute><TestCombobox /></ProtectedRoute>
             },
             {
                 path : "/timetables",

@@ -36,6 +36,17 @@ class TeacherController extends Controller
         ], 201);
     }
 
+    public function show($id)
+    {
+
+        $teacher = Teacher::findOrFail($id);
+        return response()->json([
+            'success' => true,
+            'teacher' => $teacher
+        ]);
+
+    }
+
     public function fetchData()
     {
         // Fetch all teachers
@@ -98,5 +109,82 @@ class TeacherController extends Controller
         ], 200);
     }
 
+    /////////////// Assign subjects
+
+    // Add these methods to your TeacherController
+
+    public function getTeacherWithSubjects($id)
+    {
+        $teacher = Teacher::with('subjects.semester.year.filier')->findOrFail($id);
+        return response()->json([
+            'success' => true,
+            'teacher' => $teacher,
+            'subjects' => $teacher->subjects
+        ]);
+    }
+
+    public function attachSubject(Request $request, $teacherId)
+    {
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id'
+        ]);
+
+        $teacher = Teacher::findOrFail($teacherId);
+        $teacher->subjects()->syncWithoutDetaching([$request->subject_id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Subject attached successfully'
+        ]);
+    }
+
+    public function detachSubject($teacherId, $subjectId)
+    {
+        $teacher = Teacher::findOrFail($teacherId);
+        $teacher->subjects()->detach($subjectId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Subject detached successfully'
+        ]);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'teachers' => 'required|array',
+            'teachers.*.full_name' => 'required|string',
+            'teachers.*.email' => 'required|email|unique:teachers,email',
+            'teachers.*.password' => 'required|string',
+            'teachers.*.dateNaissance' => 'required|date',
+            'teachers.*.dateEmbauche' => 'required|date',
+            'teachers.*.salary' => 'required|numeric',
+        ]);
+
+        $importedCount = 0;
+        $errors = [];
+
+        foreach ($request->teachers as $teacherData) {
+            try {
+                Teacher::create([
+                    'full_name' => $teacherData['full_name'],
+                    'email' => $teacherData['email'],
+                    'password' => Hash::make($teacherData['password']),
+                    'dateNaissance' => $teacherData['dateNaissance'],
+                    'dateEmbauche' => $teacherData['dateEmbauche'],
+                    'salary' => $teacherData['salary'],
+                ]);
+                $importedCount++;
+            } catch (\Exception $e) {
+                $errors[] = "Failed to import {$teacherData['email']}: " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'count' => $importedCount,
+            'errors' => $errors,
+        ]);
+    }
 
 }

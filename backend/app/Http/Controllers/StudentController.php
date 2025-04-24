@@ -98,15 +98,52 @@ class StudentController extends Controller
         $student->update($updateData);
 
         return response()->json([
+            'success' => true,
             'message' => 'Student updated successfully!',
             'student' => $student
         ], 200);
     }
 
 
+    public function import(Request $request)
+    {
+        $request->validate([
+            'students' => 'required|array',
+            'students.*.full_name' => 'required|string',
+            'students.*.email' => 'required|email|unique:students,email',
+            'students.*.password' => 'required|string',
+            'students.*.dateNaisance' => 'required|date',
+            'students.*.apogee' => 'required|string|unique:students,apogee',
+            'students.*.year_id' => 'required|exists:years,id',
+            'students.*.filier_id' => 'required|exists:filiers,id',
+        ]);
 
+        $importedCount = 0;
+        $errors = [];
 
+        foreach ($request->students as $studentData) {
+            try {
+                Student::create([
+                    'full_name' => $studentData['full_name'],
+                    'email' => $studentData['email'],
+                    'password' => Hash::make($studentData['password']),
+                    'dateNaisance' => $studentData['dateNaisance'],
+                    'apogee' => $studentData['apogee'],
+                    'year_id' => $studentData['year_id'],
+                    'filier_id' => $studentData['filier_id'],
+                ]);
+                $importedCount++;
+            } catch (\Exception $e) {
+                $errors[] = "Failed to import {$studentData['email']}: " . $e->getMessage();
+            }
+        }
 
+        return response()->json([
+            'success' => true,
+            'count' => $importedCount,
+            'errors' => $errors,
+        ]);
+    }
 
 
 

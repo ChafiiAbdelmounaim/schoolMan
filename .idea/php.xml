@@ -124,6 +124,10 @@
       <path value="$PROJECT_DIR$/backend/vendor/symfony/polyfill-uuid" />
       <path value="$PROJECT_DIR$/backend/vendor/composer" />
       <path value="$PROJECT_DIR$/backend/vendor/monolog/monolog" />
+      <path value="$PROJECT_DIR$/backend/vendor/markbaker/complex" />
+      <path value="$PROJECT_DIR$/backend/vendor/markbaker/matrix" />
+      <path value="$PROJECT_DIR$/backend/vendor/phpoffice/phpspreadsheet" />
+      <path value="$PROJECT_DIR$/backend/vendor/maennchen/zipstream-php" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.1" />
