@@ -17,7 +17,7 @@ class TeacherController extends Controller
             'password' => 'required|min:6',
             'dateNaissance' => 'required|date',
             'dateEmbauche' => 'required|date',
-            'salary' => 'required|numeric|min:0'
+            'grade' => 'required|string'
         ]);
 
         // Create & save the teacher in database
@@ -27,7 +27,7 @@ class TeacherController extends Controller
             'password' => Hash::make($request->password),
             'dateNaissance' => $request->dateNaissance,
             'dateEmbauche' => $request->dateEmbauche,
-            'salary' => $request->salary
+            'grade' => $request->grade
         ]);
 
         return response()->json([
@@ -78,7 +78,7 @@ class TeacherController extends Controller
             'password' => 'nullable|min:6',
             'dateNaissance' => 'required|date',
             'dateEmbauche' => 'required|date',
-            'salary' => 'required|numeric|min:0'
+            'grade' => 'required|string'
         ]);
 
         // Find the teacher
@@ -93,7 +93,7 @@ class TeacherController extends Controller
             'email' => $request->email,
             'dateNaissance' => $request->dateNaissance,
             'dateEmbauche' => $request->dateEmbauche,
-            'salary' => $request->salary
+            'grade' => $request->grade
         ];
 
         // Only update password if provided
@@ -158,7 +158,7 @@ class TeacherController extends Controller
             'teachers.*.password' => 'required|string',
             'teachers.*.dateNaissance' => 'required|date',
             'teachers.*.dateEmbauche' => 'required|date',
-            'teachers.*.salary' => 'required|numeric',
+            'teachers.*.grade' => 'required|string',
         ]);
 
         $importedCount = 0;
@@ -172,7 +172,7 @@ class TeacherController extends Controller
                     'password' => Hash::make($teacherData['password']),
                     'dateNaissance' => $teacherData['dateNaissance'],
                     'dateEmbauche' => $teacherData['dateEmbauche'],
-                    'salary' => $teacherData['salary'],
+                    'grade' => $teacherData['grade'],
                 ]);
                 $importedCount++;
             } catch (\Exception $e) {

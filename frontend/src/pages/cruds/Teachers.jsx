@@ -4,9 +4,9 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import FormItem from "../../components/form/FormItem.jsx";
 import Input from "../../components/form/Input.jsx";
-import FormMessage from "../../components/form/FormMessage.jsx";
 import FormControl from "../../components/form/FormControl.jsx";
 import FormLabel from "../../components/form/FormLabel.jsx";
+import {Select} from "@headlessui/react";
 
 const Teachers = () => {
     // State declarations
@@ -16,7 +16,7 @@ const Teachers = () => {
     const [password, setPassword] = useState("");
     const [dateNaissance, setDateNaissance] = useState("");
     const [dateEmbauche, setDateEmbauche] = useState("");
-    const [salary, setSalary] = useState("");
+    const [grade, setGrade] = useState("PA");
     const [message, setMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -32,7 +32,7 @@ const Teachers = () => {
     const filteredTeachers = teachers.filter(teacher =>
         teacher.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        teacher.salary.toString().includes(searchQuery.toLowerCase())
+        teacher.grade.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Fetch data on component mount
@@ -65,7 +65,7 @@ const Teachers = () => {
                     password,
                     dateNaissance,
                     dateEmbauche,
-                    salary
+                    grade
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -77,7 +77,7 @@ const Teachers = () => {
                     password,
                     dateNaissance,
                     dateEmbauche,
-                    salary
+                    grade
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -99,7 +99,7 @@ const Teachers = () => {
         setPassword("");
         setDateNaissance("");
         setDateEmbauche("");
-        setSalary("");
+        setGrade("PA");
         setEditMode(false);
         setEditId(null);
         setFormVisible(false);
@@ -111,7 +111,7 @@ const Teachers = () => {
         setPassword("");
         setDateNaissance(teacher.dateNaissance ? teacher.dateNaissance.split('T')[0] : "");
         setDateEmbauche(teacher.dateEmbauche ? teacher.dateEmbauche.split('T')[0] : "");
-        setSalary(teacher.salary);
+        setGrade(teacher.grade);
         setEditMode(true);
         setEditId(teacher.id);
         setFormVisible(true);
@@ -215,7 +215,7 @@ const Teachers = () => {
                             password: row['Password'] || row['password'] || 'defaultPassword123',
                             dateNaissance: dateNaissance,
                             dateEmbauche: dateEmbauche,
-                            salary: row['Salary'] || row['salary'] || 0
+                            grade: ['PA', 'PH', 'PES'].includes(row['Grade']) ? row['Grade'] : 'PA'
                         };
                     });
 
@@ -391,15 +391,18 @@ const Teachers = () => {
                         </FormItem>
 
                         <FormItem>
-                            <FormLabel>Salary</FormLabel>
+                            <FormLabel>Grade</FormLabel>
                             <FormControl>
-                                <Input
-                                    type="number"
-                                    placeholder="Teacher salary"
-                                    value={salary}
-                                    onChange={(e) => setSalary(e.target.value)}
+                                <select
+                                    value={grade}
+                                    onChange={(e) => setGrade(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required
-                                />
+                                >
+                                    <option value="PA">PA</option>
+                                    <option value="PH">PH</option>
+                                    <option value="PES">PES</option>
+                                </select>
                             </FormControl>
                         </FormItem>
                     </div>
@@ -442,7 +445,7 @@ const Teachers = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Date of Birth</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Hiring Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Salary</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Grade</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
                     </tr>
                     </thead>
@@ -464,7 +467,7 @@ const Teachers = () => {
                                     {teacher.dateEmbauche ? new Date(teacher.dateEmbauche).toLocaleDateString() : '-'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {teacher.salary}
+                                    {teacher.grade}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div className="flex gap-2">

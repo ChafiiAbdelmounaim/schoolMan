@@ -36,14 +36,22 @@ const Emploi = () => {
             item.semester_id === semesterId
         );
 
-        if (!entry) return <span className="text-gray-400 text-sm">-</span>;
+        if (!entry) {
+            return {
+                content: <span className="text-gray-400 text-sm">-</span>,
+                className: "bg-white" // Light gray background for empty cells
+            };
+        }
 
-        return (
-            <div className="text-sm text-gray-800 leading-5">
-                <div><strong>{entry.course?.name || 'N/A'}</strong></div>
-                <div>{entry.teacher?.full_name || 'N/A'} - {entry.classroom?.name || 'N/A'}</div>
-            </div>
-        );
+        return {
+            content: (
+                <div className="text-sm text-gray-800 leading-5">
+                    <div><strong>{entry.course?.name || 'N/A'}</strong></div>
+                    <div>{entry.teacher?.full_name || 'N/A'} - {entry.classroom?.name || 'N/A'}</div>
+                </div>
+            ),
+            className: "bg-blue-200" // White background for cells with data
+        };
     };
 
     if (loading) return <div className="p-4 text-center">⏳ Loading timetable...</div>;
@@ -60,13 +68,13 @@ const Emploi = () => {
                 return (
                     <div key={semesterId} className="mb-8">
                         <h3 className="text-xl font-semibold mb-4">
-                            {semesterTimetables[0].semester.year.filier.name} {semesterTimetables[0].semester.year.year_number} - {semesterTimetables[0].semester.semName}
+                            {semesterTimetables[0]?.semester?.year?.filier?.name} {semesterTimetables[0]?.semester?.year?.year_number} - {semesterTimetables[0]?.semester?.semName}
                         </h3>
 
                         {/* Timetable Table */}
                         <div className="overflow-x-auto">
                             <table className="table-auto w-full border-collapse border border-gray-300 text-center">
-                                <thead className="bg-indigo-200">
+                                <thead className="bg-gray-800 text-white">
                                 <tr>
                                     <th className="border px-4 py-2"></th>
                                     {timeSlots.map((slot, i) => (
@@ -79,12 +87,15 @@ const Emploi = () => {
                                 <tbody>
                                 {daysOfWeek.map((day) => (
                                     <tr key={day}>
-                                        <td className="border px-4 py-4 font-medium bg-indigo-200">{day}</td>
-                                        {timeSlots.map((slot, i) => (
-                                            <td key={i} className="border px-4 py-4 align-top text-sm">
-                                                {getCellContent(semesterId, day, slot)}
-                                            </td>
-                                        ))}
+                                        <td className="border px-4 py-4 font-medium text-white bg-gray-800">{day}</td>
+                                        {timeSlots.map((slot, i) => {
+                                            const cell = getCellContent(semesterId, day, slot);
+                                            return (
+                                                <td key={i} className={`border px-4 py-4 align-top text-sm ${cell.className}`}>
+                                                    {cell.content}
+                                                </td>
+                                            );
+                                        })}
                                     </tr>
                                 ))}
                                 </tbody>

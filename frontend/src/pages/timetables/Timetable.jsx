@@ -27,9 +27,9 @@ const Timetable = () => {
                 }
             );
             // alert(response.data.message);
-            console.log(response.data.data)// Success message from backend
+            console.log(response.data.disponibilities)// Success message from backend
             // console.log(response.data.subjects)// Success message from backend
-            navigate('/emploi');
+            // navigate('/emploi');
         } catch (error) {
             console.error("Error generating timetables:", error);
             alert("An error occurred while generating the timetables.");

@@ -196,8 +196,8 @@ const ViewTeacher = () => {
                                 <p className="text-lg">{formatDate(teacher.dateEmbauche)}</p>
                             </div>
                             <div>
-                                <p className="font-medium text-gray-600">Salary</p>
-                                <p className="text-lg">${teacher.salary?.toLocaleString() || 'N/A'}</p>
+                                <p className="font-medium text-gray-600">Grade</p>
+                                <p className="text-lg">{teacher.grade?.toLocaleString() || 'N/A'}</p>
                             </div>
                         </div>
                     </div>

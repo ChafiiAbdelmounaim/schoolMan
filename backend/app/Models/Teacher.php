@@ -15,7 +15,7 @@ class Teacher extends Model
         'password',
         'dateNaissance',
         'dateEmbauche',
-        'salary',
+        'grade',
     ];
 
     protected $hidden = [
@@ -25,7 +25,7 @@ class Teacher extends Model
     protected $casts = [
         'dateNaissance' => 'date',
         'dateEmbauche' => 'date',
-        'salary' => 'decimal:2',
+        'grade' => 'string',
     ];
 
     public function subjects()
