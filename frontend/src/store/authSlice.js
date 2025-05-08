@@ -27,6 +27,34 @@ export const registerUser = createAsyncThunk(
     }
 );
 
+export const registerTeacher = createAsyncThunk(
+    'auth/registerTeacher',
+    async (userData, thunkAPI) => {
+        try {
+            const data = await AuthService.registerTeacher(userData);
+            return data;
+        } catch (error) {
+            return thunkAPI.rejectWithValue(
+                error.response?.data || error.message || 'Teacher registration failed'
+            );
+        }
+    }
+);
+
+export const registerStudent = createAsyncThunk(
+    'auth/registerStudent',
+    async (userData, thunkAPI) => {
+        try {
+            const data = await AuthService.registerStudent(userData);
+            return data;
+        } catch (error) {
+            return thunkAPI.rejectWithValue(
+                error.response?.data || error.message || 'Student registration failed'
+            );
+        }
+    }
+);
+
 export const loginUser = createAsyncThunk(
     'auth/loginUser',
     async (credentials, thunkAPI) => {
@@ -65,6 +93,7 @@ export const logoutUser = createAsyncThunk(
 const initialState = {
     token: localStorage.getItem('token') || null,
     user: getParsedLocalStorageItem('user'),
+    role: localStorage.getItem('role') || null,
     loading: false,
     error: null,
 };
@@ -88,11 +117,44 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.token = action.payload.access_token;
                 state.user = action.payload.user;
-                // Save to localStorage
-                localStorage.setItem('token', action.payload.access_token);
-                localStorage.setItem('user', JSON.stringify(action.payload.user));
+                state.role = action.payload.role;
+                // Save to localStorage handled by AuthService
             })
             .addCase(registerUser.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+
+            // Teacher Registration
+            .addCase(registerTeacher.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(registerTeacher.fulfilled, (state, action) => {
+                state.loading = false;
+                state.token = action.payload.access_token;
+                state.user = action.payload.user;
+                state.role = action.payload.role;
+                // Save to localStorage handled by AuthService
+            })
+            .addCase(registerTeacher.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+
+            // Student Registration
+            .addCase(registerStudent.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(registerStudent.fulfilled, (state, action) => {
+                state.loading = false;
+                state.token = action.payload.access_token;
+                state.user = action.payload.user;
+                state.role = action.payload.role;
+                // Save to localStorage handled by AuthService
+            })
+            .addCase(registerStudent.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             })
@@ -106,9 +168,8 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.token = action.payload.access_token;
                 state.user = action.payload.user;
-                // Save to localStorage
-                localStorage.setItem('token', action.payload.access_token);
-                localStorage.setItem('user', JSON.stringify(action.payload.user));
+                state.role = action.payload.role;
+                // Save to localStorage handled by AuthService
             })
             .addCase(loginUser.rejected, (state, action) => {
                 state.loading = false;
@@ -122,9 +183,9 @@ const authSlice = createSlice({
             })
             .addCase(fetchUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload;
-                // Save to localStorage
-                localStorage.setItem('user', JSON.stringify(action.payload));
+                state.user = action.payload.user;
+                state.role = action.payload.role;
+                // Save to localStorage handled by AuthService
             })
             .addCase(fetchUser.rejected, (state, action) => {
                 state.loading = false;
@@ -140,9 +201,11 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.token = null;
                 state.user = null;
+                state.role = null;
                 // Remove from localStorage
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
+                localStorage.removeItem('role');
             })
             .addCase(logoutUser.rejected, (state, action) => {
                 state.loading = false;

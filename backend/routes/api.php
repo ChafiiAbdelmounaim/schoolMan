@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->group(function (){
             Route::get('/', 'fetchData');
             Route::post('/', 'store');
+            Route::post('/import', 'import');
             Route::delete('/{id}', 'destroy');
             Route::put('/{id}', 'update');
         });
@@ -54,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', 'store');
             Route::delete('/{id}', 'destroy');
             Route::put('/{id}', 'update');
+            Route::get('/{year}/semesters', 'semesters');
         });
 
     // Semesters Routes
@@ -64,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', 'store');
             Route::delete('/{id}', 'destroy');
             Route::put('/{id}', 'update');
+            Route::get('/{semester}/timetables', 'timetables');
         });
 
     // Students Routes
@@ -72,9 +75,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ->group(function (){
             Route::get('/', 'fetchData');
             Route::post('/', 'store');
+            Route::get('/{id}', 'show');
             Route::post('/import', 'import');
             Route::delete('/{id}', 'destroy');
             Route::put('/{id}', 'update');
+            Route::get('/{student_id}/timetable', 'getTimetable');
+
         });
 
     // Teachers Routes
@@ -111,10 +117,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::post('/generate-s1-timetables', [TimetableController::class, 'generateS1Timetables']);
+    Route::post('/generate-s2-timetables', [TimetableController::class, 'generateS2Timetables']);
 
 });
 
 Route::get('/emploi', [TimetableController::class, 'index']);
-
-
-
+Route::get('/teacher/{teacher}/timetable', [TimetableController::class, 'teacherTimetable']);

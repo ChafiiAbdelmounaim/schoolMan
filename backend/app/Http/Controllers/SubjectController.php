@@ -74,5 +74,35 @@ class SubjectController extends Controller
         ], 200);
     }
 
+    public function import(Request $request)
+    {
+        $request->validate([
+            'subjects' => 'required|array',
+            'subjects.*.name' => 'required|string',
+            'subjects.*.semester_id' => 'required|exists:semesters,id',
+        ]);
+
+        $importedCount = 0;
+        $errors = [];
+
+        foreach ($request->subjects as $subjectData) {
+            try {
+                Subject::create([
+                    'name' => $subjectData['name'],
+                    'semester_id' => $subjectData['semester_id'],
+                ]);
+                $importedCount++;
+            } catch (\Exception $e) {
+                $errors[] = "Failed to import subject '{$subjectData['name']}': " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'count' => $importedCount,
+            'errors' => $errors,
+        ]);
+    }
+
 
 }

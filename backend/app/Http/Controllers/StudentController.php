@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Semester;
 use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\Timetable;
 use App\Models\Year;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class StudentController extends Controller
 {
@@ -48,6 +52,17 @@ class StudentController extends Controller
         return response()->json($students);
     }
 
+    public function show($id)
+    {
+
+        $student = Student::with(['year.filier'])->find($id);
+
+        return response()->json([
+            'success' => true,
+            'student' => $student
+        ]);
+
+    }
 
     public function destroy($id)
     {
@@ -76,6 +91,7 @@ class StudentController extends Controller
 
         // Find the student
         $student = Student::find($id);
+
         if (!$student) {
             return response()->json(['message' => 'Student not found'], 404);
         }
@@ -143,6 +159,28 @@ class StudentController extends Controller
             'count' => $importedCount,
             'errors' => $errors,
         ]);
+    }
+
+    public function getTimetable($studentId)
+    {
+        // Find the student
+        $student = Student::findOrFail($studentId);
+
+        if (!$student->year_id) {
+            return response()->json([], 200);
+        }
+
+        // Get all semesters for this student's year
+        $semesters = Semester::where('year_id', $student->year_id)->get();
+        Log::debug('Semesters:', $semesters->toArray());
+        $semesterIds = $semesters->pluck('id')->toArray();
+
+        // Get all timetable entries for these semesters
+        $timetables = Timetable::whereIn('semester_id', $semesterIds)
+            ->with(['course', 'teacher', 'classroom', 'semester.year.filier'])
+            ->get();
+
+        return response()->json($timetables);
     }
 
 

@@ -4,7 +4,6 @@ import {store} from "./store/store.js";
 import {ProtectedRoute} from "./components/ProtectedRoute.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import RegisterAdmin from "./pages/admin/RegisterAdmin.jsx";
-import IndexAdmin from "./pages/admin/IndexAdmin.jsx";
 import Subjects from "./pages/cruds/Subjects.jsx";
 import Filier from "./pages/cruds/Filier.jsx";
 import Year from "./pages/cruds/Year.jsx";
@@ -18,6 +17,16 @@ import Timetable from "./pages/timetables/Timetable.jsx";
 import Display from "./pages/timetables/Display.jsx";
 import Emploi from "./pages/timetables/Emploi.jsx";
 import ViewTeacher from "./pages/cruds/ViewTeacher.jsx";
+import {AdminRoute} from "./pages/admin/AdminRoute .jsx";
+import {TeacherRoute} from "./pages/teacher/TeacherRoute.jsx";
+import TeacherDashboard from "./pages/teacher/TeacherDashboard.jsx";
+import StudentDashboard from "./pages/student/StudentDashboard.jsx";
+import {StudentRoute} from "./pages/student/StudentRoute.jsx";
+import TeacherEmploi from "./pages/teacher/TeacherEmploi.jsx";
+import StudentEmploi from "./pages/student/StudentEmploi.jsx";
+import TeacherClasses from "./pages/teacher/TeacherClasses.jsx";
+import HomePage from "./pages/guests/HomePage.jsx";
+import {GuestOnlyRoute} from "./pages/guests/GuestOnlyRoute.jsx";
 
 
 
@@ -27,6 +36,11 @@ const router = createBrowserRouter([
         element: <Layout />,
         children: [
             {
+                path: "/",
+                element: <GuestOnlyRoute><HomePage /></GuestOnlyRoute>,
+            },
+            // Admin routes
+            {
                 path: "/login",
                 element: <LoggedInRoute><AdminLogin /></LoggedInRoute>,
             },
@@ -35,54 +49,72 @@ const router = createBrowserRouter([
                 element: <LoggedInRoute><RegisterAdmin /></LoggedInRoute>,
             },
             {
-                path: "/admin",
-                element: <ProtectedRoute><IndexAdmin /></ProtectedRoute>
-            },
-            {
                 path : "/subjects",
-                element : <ProtectedRoute><Subjects /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Subjects /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/filiers",
-                element : <ProtectedRoute><Filier /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Filier /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/years",
-                element : <ProtectedRoute><Year /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Year /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/semesters",
-                element : <ProtectedRoute><Semesters /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Semesters /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/students",
-                element : <ProtectedRoute><Students /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Students /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/teachers",
-                element : <ProtectedRoute><Teachers /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Teachers /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/teachers/:id",
-                element : <ProtectedRoute><ViewTeacher /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><ViewTeacher /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/classrooms",
-                element : <ProtectedRoute><Classrooms /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Classrooms /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/timetables",
-                element : <ProtectedRoute><Timetable /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Timetable /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/display",
-                element : <ProtectedRoute><Display /></ProtectedRoute>
+                element : <ProtectedRoute><AdminRoute><Display /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/emploi",
-                element : <ProtectedRoute><Emploi /></ProtectedRoute>
-            }
+                element : <ProtectedRoute><AdminRoute><Emploi /></AdminRoute></ProtectedRoute>
+            },
 
+            // Teacher routes
+            {
+                path: "/teacher/dashboard",
+                element: <ProtectedRoute><TeacherRoute><TeacherDashboard /></TeacherRoute></ProtectedRoute>
+            },
+            {
+                path: "/teacher/timetable",
+                element: <ProtectedRoute><TeacherRoute><TeacherEmploi /></TeacherRoute></ProtectedRoute>
+            },
+            {
+                path: "/teacher/classes",
+                element: <ProtectedRoute><TeacherRoute><TeacherClasses /></TeacherRoute></ProtectedRoute>
+            },
+            // Student routes
+            {
+                path: "/student/dashboard",
+                element: <ProtectedRoute><StudentRoute><StudentDashboard /></StudentRoute></ProtectedRoute>
+            },
+            {
+                path: "/student/timetable",
+                element: <ProtectedRoute><StudentRoute><StudentEmploi /></StudentRoute></ProtectedRoute>
+            }
         ]
     }
 ]);

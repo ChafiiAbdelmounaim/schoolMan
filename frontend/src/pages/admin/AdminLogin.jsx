@@ -40,7 +40,17 @@ function AdminLogin() {
         } else {
             setErrorMessage("");
             login({ email, password })
-                .then(() => navigate("/students"))
+                .then((response) => {
+                    if (response.role === 'user') {
+                        navigate("/students");
+                    }else if(response.role === 'teacher'){
+                        navigate("/teacher/dashboard");
+                    }else if(response.role === 'student'){
+                        navigate("/student/dashboard");
+                    } else {
+                        setErrorMessage("Access denied. Admin login only.");
+                    }
+                })
                 .catch((err) => setErrorMessage(err.message || "Authentication failed"))
                 .finally(() => setIsLoading(false));
         }

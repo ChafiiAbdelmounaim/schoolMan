@@ -479,7 +479,7 @@ const Teachers = () => {
                                             <i className="fas fa-edit"></i>
                                         </button>
                                         <button
-                                            onClick={() => navigate(`/teachers/${teacher.id}`)}
+                                            onClick={() => window.open(`/teachers/${teacher.id}`, '_blank')}
                                             className="text-green-600 hover:text-green-900"
                                             title="View"
                                         >

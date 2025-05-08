@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Semester;
+use App\Models\Timetable;
 use App\Models\Year;
 use Illuminate\Http\Request;
 
@@ -74,4 +75,5 @@ class SemesterController extends Controller
             'semester' => $semester
         ], 200);
     }
+
 }

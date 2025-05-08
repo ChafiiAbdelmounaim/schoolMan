@@ -10,6 +10,7 @@ const sidebarItems = [
     {name: "Filiers", icon: "fas fa-layer-group"},
     {name: "Years", icon: "fas fa-calendar"},
     {name: "Semesters", icon: "fa-solid fa-circle-half-stroke"},
+    {name: "Emploi", icon: "fa-solid fa-gear"},
     {name: "Timetables", icon: "fa-regular fa-calendar-days"},
 ];
 

@@ -12,6 +12,7 @@ const ViewTeacher = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -31,10 +32,6 @@ const ViewTeacher = () => {
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                console.log(subjectsResponse.data)
-                console.log('.subjects flkher')
-                console.log(subjectsResponse.data.subjects)
-
                 setTeacher(teacherResponse.data.teacher);
                 setSubjects(teacherResponse.data.subjects || []);
                 setAllSubjects(subjectsResponse.data || []);
@@ -44,6 +41,9 @@ const ViewTeacher = () => {
             } finally {
                 setIsLoading(false);
             }
+
+            const allSubjectsCount = allSubjects.length;
+            console.log(`Total number of subjects: ${allSubjectsCount}`);
         };
 
         fetchData();
@@ -72,6 +72,7 @@ const ViewTeacher = () => {
 
             setSubjects(response.data.subjects || []);
             setSelectedSubject("");
+            setSearchTerm("");
             setError("");
             setSuccessMessage("Subject added successfully!");
             setTimeout(() => setSuccessMessage(""), 3000);
@@ -115,6 +116,19 @@ const ViewTeacher = () => {
         const date = new Date(dateString);
         return date.toLocaleDateString();
     };
+
+    // Filter subjects based on search term
+    const filteredSubjects = allSubjects
+        .filter(subject => !subjects.some(s => s.id === subject.id))
+        .filter(subject => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+                subject.name.toLowerCase().includes(searchLower) ||
+                subject.semester.year.filier.name.toLowerCase().includes(searchLower) ||
+                subject.semester.semName.toLowerCase().includes(searchLower)
+            );
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     if (isLoading) return (
         <div className="flex justify-center items-center h-64">
@@ -220,7 +234,30 @@ const ViewTeacher = () => {
                         </div>
                     )}
 
-                    <div className="mb-6">
+                    <div className="mb-6 space-y-3">
+                        {/* Search input for filtering subjects */}
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search subjects..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full p-2 pl-10 border rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={isLoading}
+                            />
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i className="fas fa-search text-gray-400"></i>
+                            </div>
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm("")}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            )}
+                        </div>
+
                         <div className="flex flex-col sm:flex-row gap-2">
                             <select
                                 value={selectedSubject}
@@ -232,14 +269,11 @@ const ViewTeacher = () => {
                                 disabled={isLoading}
                             >
                                 <option value="">Select a subject to add</option>
-                                {allSubjects
-                                    .filter(subject => !subjects.some(s => s.id === subject.id))
-                                    .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map(subject => (
-                                        <option key={subject.id} value={subject.id}>
-                                            {subject.name} / {subject.semester.year.filier.name}
-                                        </option>
-                                    ))}
+                                {filteredSubjects.map(subject => (
+                                    <option key={subject.id} value={subject.id}>
+                                        {subject.name} / {subject.semester.year.filier.name} {subject.semester.year.year_number} - {subject.semester.semName}
+                                    </option>
+                                ))}
                             </select>
                             <button
                                 onClick={handleAttachSubject}
@@ -256,6 +290,12 @@ const ViewTeacher = () => {
                                 )}
                             </button>
                         </div>
+
+                        {searchTerm && filteredSubjects.length === 0 && (
+                            <div className="p-3 bg-gray-50 text-gray-600 rounded text-center">
+                                No subjects found matching "{searchTerm}"
+                            </div>
+                        )}
                     </div>
 
                     <div className="bg-white rounded-lg border">
@@ -269,7 +309,7 @@ const ViewTeacher = () => {
                                     <li key={subject.id} className="p-4 hover:bg-gray-50">
                                         <div className="flex justify-between items-center">
                                             <div>
-                                                <p className="font-medium">{subject.name} <span className="text-gray-400">- {subject.semester.year.filier.name} </span></p>
+                                                <p className="font-medium">{subject.name} <span className="text-gray-400">- {subject.semester.year.filier.name} - {subject.semester.semName}</span></p>
                                                 {subject.description && (
                                                     <p className="text-sm text-gray-600 mt-1">{subject.description}</p>
                                                 )}
@@ -289,8 +329,6 @@ const ViewTeacher = () => {
                         )}
                     </div>
                 </div>
-
-
             </div>
         </div>
     );

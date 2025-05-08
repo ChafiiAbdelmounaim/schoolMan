@@ -126,6 +126,84 @@ const Subjects = () => {
         }
     };
 
+    // Excel Import Functions
+    const handleFileChange = (e) => {
+        setImportFile(e.target.files[0]);
+        setMessage("");
+    };
+
+    const handleImport = async () => {
+        if (!importFile) {
+            setMessage("Please select a file first");
+            return;
+        }
+
+        setIsLoading(true);
+        setImportProgress("Reading file...");
+
+        try {
+            const data = await readExcelFile(importFile);
+            setImportProgress(`Found ${data.length} subjects to import...`);
+
+            const token = localStorage.getItem("token");
+            const response = await axios.post(
+                "http://localhost:8000/api/subjects/import",
+                { subjects: data },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success) {
+                setMessage(`Successfully imported ${response.data.count} subjects`);
+                if (response.data.errors.length > 0) {
+                    setMessage(prev => `${prev} (${response.data.errors.length} failed)`);
+                }
+            } else {
+                setMessage("Import failed: " + (response.data.message || "Unknown error"));
+            }
+
+            setImportFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            fetchSubjects();
+        } catch (error) {
+            console.error("Import error:", error);
+            setMessage("Error importing subjects: " +
+                (error.response?.data?.message || error.message));
+        } finally {
+            setIsLoading(false);
+            setImportProgress(null);
+        }
+    };
+
+    const readExcelFile = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    // Map Excel columns to subject data structure
+                    const mappedData = jsonData.map(row => {
+                        return {
+                            name: row['Subject Name'] || row['name'] || '',
+                            semester_id: row['Semester ID'] || row['semester_id'] || ''
+                        };
+                    });
+
+                    // Filter out records with missing required fields
+                    resolve(mappedData.filter(item => item.name && item.semester_id));
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            reader.onerror = (error) => reject(error);
+            reader.readAsArrayBuffer(file);
+        });
+    };
 
     return (
         <div className="max-w-6xl mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
@@ -149,6 +227,40 @@ const Subjects = () => {
                         )}
                     </button>
 
+                    {/* Excel Import Controls */}
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".xlsx, .xls, .csv"
+                            className="hidden"
+                            id="file-import"
+                        />
+                        <label
+                            htmlFor="file-import"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded cursor-pointer transition flex items-center gap-2"
+                        >
+                            <i className="fas fa-file-import"></i> Import Excel
+                        </label>
+                        {importFile && (
+                            <button
+                                onClick={handleImport}
+                                disabled={isLoading}
+                                className={`bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded transition flex items-center gap-2 ${isLoading ? 'opacity-50' : ''}`}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin"></i> Importing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-upload"></i> Import ({importFile.name})
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="relative w-full md:w-auto">
@@ -216,7 +328,7 @@ const Subjects = () => {
                                     <option value="">Select Semester</option>
                                     {semesters.map((semester) => (
                                         <option key={semester.id} value={semester.id}>
-                                            {`${semester.year.filier.name} ${semester.year.year_number} / ${semester.semName}`}
+                                            {`${semester.year?.filier?.name || 'Unknown'} ${semester.year?.year_number || ''} / ${semester.semName}`}
                                         </option>
                                     ))}
                                 </select>
@@ -273,7 +385,7 @@ const Subjects = () => {
                                     {subject.name}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {subject.semester?.year?.filier?.name || '-'} {subject.semester.year.year_number}
+                                    {subject.semester?.year?.filier?.name || '-'} {subject.semester?.year?.year_number || ''}
                                 </td>
 
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
