@@ -21,6 +21,11 @@ class Timetable extends Model
         'day',
         'start_time',
         'end_time',
+        'status',
+    ];
+
+    protected $attributes = [
+        'status' => 'unconfirmed', // This should be unconfirmed by default
     ];
 
     // Relationships

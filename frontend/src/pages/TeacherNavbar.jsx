@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
+import NotificationBell from "../components/NotificationBell.jsx";
 
 const TeacherNavbar = () => {
     const { user, logout } = useAuth();
@@ -34,6 +35,15 @@ const TeacherNavbar = () => {
             {/* Right-aligned navigation items */}
             <div className="flex items-center space-x-4 relative">
 
+                {/* Announcements Icon */}
+                <button
+                    className="p-2 text-xl hover:text-gray-300 transition-colors"
+                    aria-label="View schedule"
+                    onClick={() => navigate("/teacher/announcements")}
+                >
+                    <i className="fa-duotone fa-solid fa-bullhorn"></i>
+                </button>
+
                 {/* Schedule Icon */}
                 <button
                     className="p-2 text-xl hover:text-gray-300 transition-colors"
@@ -52,13 +62,8 @@ const TeacherNavbar = () => {
                     <i className="fas fa-book-open"></i>
                 </button>
 
-                {/* Messages Icon */}
-                <button
-                    className="p-2 text-xl hover:text-gray-300 transition-colors"
-                    aria-label="Messages"
-                >
-                    <i className="fas fa-envelope"></i>
-                </button>
+                {/* Notifications Bell - New Component */}
+                <NotificationBell userType="teacher" />
 
                 {/* Profile Dropdown */}
                 <button
@@ -98,6 +103,14 @@ const TeacherNavbar = () => {
                             >
                                 <i className="fas fa-book-open mr-2"></i> My Classes
                             </button>
+
+                            <button
+                                className="flex items-center w-full p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                                onClick={() => navigate("/teacher/announcements")}
+                            >
+                                <i className="fa-duotone fa-solid fa-bullhorn mr-2"></i> Announcements
+                            </button>
+
                             <button
                                 onClick={handleLogout}
                                 className="flex items-center w-full p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"

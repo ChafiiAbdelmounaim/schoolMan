@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
+import NotificationBell from "../components/NotificationBell.jsx";
 
 const StudentNavbar = () => {
     const { user, logout } = useAuth();
@@ -13,7 +14,6 @@ const StudentNavbar = () => {
             localStorage.removeItem('user');
         });
     };
-
 
     const toggleProfile = () => {
         setIsProfileOpen(!isProfileOpen);
@@ -34,6 +34,16 @@ const StudentNavbar = () => {
 
             {/* Right-aligned navigation items */}
             <div className="flex items-center space-x-4 relative">
+
+                {/* Announcements Icon */}
+                <button
+                    className="p-2 text-xl hover:text-gray-300 transition-colors"
+                    aria-label="View schedule"
+                    onClick={() => navigate("/student/announcements")}
+                >
+                    <i className="fa-duotone fa-solid fa-bullhorn"></i>
+                </button>
+
                 {/* Schedule Icon */}
                 <button
                     className="p-2 text-xl hover:text-gray-300 transition-colors"
@@ -43,13 +53,9 @@ const StudentNavbar = () => {
                     <i className="fas fa-calendar-alt"></i>
                 </button>
 
-                {/* Messages Icon */}
-                <button
-                    className="p-2 text-xl hover:text-gray-300 transition-colors"
-                    aria-label="Messages"
-                >
-                    <i className="fas fa-envelope"></i>
-                </button>
+                {/* Notifications Bell - New Component */}
+                <NotificationBell userType="student" />
+
 
                 {/* Profile Dropdown */}
                 <button
@@ -83,6 +89,14 @@ const StudentNavbar = () => {
                             >
                                 <i className="fas fa-calendar-alt mr-2"></i> My Timetable
                             </button>
+
+                            <button
+                                className="flex items-center w-full p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                                onClick={() => navigate("/student/announcements")}
+                            >
+                                <i className="fa-duotone fa-solid fa-bullhorn mr-2"></i> Announcements
+                            </button>
+
                             <button
                                 onClick={handleLogout}
                                 className="flex items-center w-full p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"

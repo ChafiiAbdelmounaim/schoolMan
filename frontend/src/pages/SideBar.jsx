@@ -12,6 +12,7 @@ const sidebarItems = [
     {name: "Semesters", icon: "fa-solid fa-circle-half-stroke"},
     {name: "Emploi", icon: "fa-solid fa-gear"},
     {name: "Timetables", icon: "fa-regular fa-calendar-days"},
+    {name: "Announcements", icon: "fa fa-bell"},
 ];
 
 const SideBar = () => {

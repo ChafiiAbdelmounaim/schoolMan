@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\FilierController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SemesterController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
@@ -109,12 +111,32 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{id}', 'update');
         });
 
+    // Notification Routes
+    Route::prefix('/notifications')
+        ->controller(NotificationController::class)
+        ->group(function (){
+            Route::get('/', 'index');
+            Route::get('/timetable-updates', 'checkTimetableUpdates');
+            Route::post('/{id}/read', 'markAsRead');
+            Route::post('/mark-all-read', 'markAllAsRead');
+            Route::post('/timetable-update', 'createTimetableUpdateNotification');
+        });
+
+    // Announcement routes
+    Route::prefix('/announcements')
+        ->controller(AnnouncementController::class)
+        ->group(function (){
+            Route::get('/', 'index');
+            Route::get('/{id}', 'show');
+            Route::post('/', 'store');
+            Route::delete('/{id}', 'destroy');
+
+        });
+
 
     Route::get('/timetables', function () {
         return Timetable::with(['course', 'teacher', 'classroom', 'semester'])->get();
     });
-
-
 
     Route::post('/generate-s1-timetables', [TimetableController::class, 'generateS1Timetables']);
     Route::post('/generate-s2-timetables', [TimetableController::class, 'generateS2Timetables']);
@@ -122,4 +144,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/emploi', [TimetableController::class, 'index']);
+Route::post('/confirm-timetables', [TimetableController::class, 'confirmTimetables']);
+Route::delete('/cancel-timetables', [TimetableController::class, 'destroyAll']);
+
 Route::get('/teacher/{teacher}/timetable', [TimetableController::class, 'teacherTimetable']);

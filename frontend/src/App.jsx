@@ -27,6 +27,10 @@ import StudentEmploi from "./pages/student/StudentEmploi.jsx";
 import TeacherClasses from "./pages/teacher/TeacherClasses.jsx";
 import HomePage from "./pages/guests/HomePage.jsx";
 import {GuestOnlyRoute} from "./pages/guests/GuestOnlyRoute.jsx";
+import PreviewTimetables from "./pages/timetables/PreviewTimetables.jsx";
+import AnnouncementList from "./pages/announcement/AnnouncementList.jsx";
+import AnnouncementDetail from "./pages/announcement/AnnouncementDetail.jsx";
+import Announcement from "./pages/announcement/Announcement.jsx";
 
 
 
@@ -92,6 +96,22 @@ const router = createBrowserRouter([
                 path : "/emploi",
                 element : <ProtectedRoute><AdminRoute><Emploi /></AdminRoute></ProtectedRoute>
             },
+            {
+                path : "/preview-timetables",
+                element : <ProtectedRoute><AdminRoute><PreviewTimetables /></AdminRoute></ProtectedRoute>
+            },
+            {
+                path: "/announcements/create",
+                element: <ProtectedRoute><AdminRoute><Announcement /></AdminRoute></ProtectedRoute>
+            },
+            {
+                path: "/announcements",
+                element: <ProtectedRoute><AdminRoute><AnnouncementList /></AdminRoute></ProtectedRoute>
+            },
+            {
+                path: "/announcements/:id",
+                element: <ProtectedRoute><AdminRoute><AnnouncementDetail /></AdminRoute></ProtectedRoute>
+            },
 
             // Teacher routes
             {
@@ -106,6 +126,15 @@ const router = createBrowserRouter([
                 path: "/teacher/classes",
                 element: <ProtectedRoute><TeacherRoute><TeacherClasses /></TeacherRoute></ProtectedRoute>
             },
+            {
+                path: "/teacher/announcements",
+                element: <ProtectedRoute><TeacherRoute><AnnouncementList /></TeacherRoute></ProtectedRoute>
+            },
+            {
+                path: "/teacher/announcements/:id",
+                element: <ProtectedRoute><TeacherRoute><AnnouncementDetail /></TeacherRoute></ProtectedRoute>
+            },
+
             // Student routes
             {
                 path: "/student/dashboard",
@@ -114,7 +143,15 @@ const router = createBrowserRouter([
             {
                 path: "/student/timetable",
                 element: <ProtectedRoute><StudentRoute><StudentEmploi /></StudentRoute></ProtectedRoute>
-            }
+            },
+            {
+                path: "/student/announcements",
+                element: <ProtectedRoute><StudentRoute><AnnouncementList /></StudentRoute></ProtectedRoute>
+            },
+            {
+                path: "/student/announcements/:id",
+                element: <ProtectedRoute><StudentRoute><AnnouncementDetail /></StudentRoute></ProtectedRoute>
+            },
         ]
     }
 ]);

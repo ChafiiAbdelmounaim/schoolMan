@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const timeSlots = [
@@ -8,59 +8,39 @@ const timeSlots = [
     { label: '14:00 - 17:00', start: '14:00:00', end: '17:00:00' }
 ];
 
-const Emploi = () => {
-    const location = useLocation();
+const PreviewTimetables = () => {
     const navigate = useNavigate();
     const [timetables, setTimetables] = useState([]);
     const [semesters, setSemesters] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        console.log("Location state:", location.state);
+        // Load unconfirmed timetables directly from the API
+        fetchUnconfirmedTimetables();
+    }, []);
 
-        // Check if we're coming from generation with state data
-        if (location.state?.generatedData) {
-            console.log("Generated data received:", location.state.generatedData);
-
-            // Extract data based on API response structure
-            const data = location.state.generatedData.data || [];
-            console.log("Timetable data:", data);
-
-            setTimetables(data);
-
-            // Set semester IDs only if we have data
-            if (data.length > 0) {
-                const uniqueSemesterIds = [...new Set(data.map(obj => obj.semester_id))];
-                console.log("Semester IDs:", uniqueSemesterIds);
-                setSemesters(uniqueSemesterIds);
-            }
-
-            setIsPreviewMode(true);
-            setLoading(false);
-        } else {
-            // Normal load of existing timetables
-            fetchTimetables();
-        }
-    }, [location.state]);
-
-    const fetchTimetables = async () => {
+    const fetchUnconfirmedTimetables = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get('http://localhost:8000/api/emploi', {
+            const res = await axios.get('http://localhost:8000/api/emploi?status=unconfirmed', {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            console.log("Fetched timetables:", res.data);
+            console.log("Unconfirmed timetables:", res.data);
 
-            if (Array.isArray(res.data)) {
+            if (Array.isArray(res.data) && res.data.length > 0) {
                 setTimetables(res.data);
                 const uniqueSemesterIds = [...new Set(res.data.map(obj => obj.semester_id))];
                 setSemesters(uniqueSemesterIds);
+            } else {
+                // No timetables found or data is not an array
+                setError("No timetables found. Generation may have failed.");
             }
         } catch (err) {
-            console.error("Error loading timetable:", err);
+            console.error("Error loading unconfirmed timetables:", err);
+            setError(`Error loading timetables: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -123,7 +103,7 @@ const Emploi = () => {
                     <div>{entry.teacher?.full_name || 'N/A'} - {entry.classroom?.name || 'N/A'}</div>
                 </div>
             ),
-            className: isPreviewMode ? "bg-blue-100" : "bg-blue-200"
+            className: "bg-blue-100"
         };
     };
 
@@ -133,29 +113,25 @@ const Emploi = () => {
     if (timetables.length === 0 || semesters.length === 0) {
         return (
             <div className="max-w-4xl mx-auto mt-16 p-6">
-                <h2 className="text-2xl font-bold text-center mb-8">
-                    {isPreviewMode ? 'Preview Generated Timetables' : 'Current Timetables'}
-                </h2>
+                <h2 className="text-2xl font-bold text-center mb-8">Preview Generated Timetables</h2>
                 <div className="p-8 bg-gray-50 rounded-lg text-center">
-                    <p className="text-lg text-gray-600">No timetables available to display.</p>
-                    {isPreviewMode && (
-                        <button
-                            onClick={() => navigate('/generate-timetables')}
-                            className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-                        >
-                            Return to Generation
-                        </button>
-                    )}
+                    <p className="text-lg text-gray-600">
+                        {error || "No timetables available to display."}
+                    </p>
+                    <button
+                        onClick={() => navigate('/timetables')}
+                        className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                    >
+                        Return to Generation
+                    </button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-4xl mx-auto mt-16 p-6">
-            <h2 className="text-2xl font-bold text-center mb-8">
-                {isPreviewMode ? 'Preview Generated Timetables' : 'Current Timetables'}
-            </h2>
+        <div className="max-w-4xl mx-auto mt-16 p-6 pb-24">
+            <h2 className="text-2xl font-bold text-center mb-8">Preview Generated Timetables</h2>
 
             {/* Loop through semesters and render a table for each one */}
             {semesters.map((semesterId) => {
@@ -203,29 +179,27 @@ const Emploi = () => {
                 );
             })}
 
-            {/* Confirmation buttons (only shown in preview mode) */}
-            {isPreviewMode && (
-                <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t shadow-lg">
-                    <div className="max-w-4xl mx-auto flex justify-end space-x-4">
-                        <button
-                            onClick={handleCancel}
-                            disabled={isProcessing}
-                            className={`px-6 py-2 ${isProcessing ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white rounded-md`}
-                        >
-                            Cancel Generation
-                        </button>
-                        <button
-                            onClick={handleConfirm}
-                            disabled={isProcessing}
-                            className={`px-6 py-2 ${isProcessing ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white rounded-md`}
-                        >
-                            {isProcessing ? 'Processing...' : 'Confirm Timetables'}
-                        </button>
-                    </div>
+            {/* Confirmation buttons */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t shadow-lg">
+                <div className="max-w-4xl mx-auto flex justify-end space-x-4">
+                    <button
+                        onClick={handleCancel}
+                        disabled={isProcessing}
+                        className={`px-6 py-2 ${isProcessing ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white rounded-md`}
+                    >
+                        Cancel Generation
+                    </button>
+                    <button
+                        onClick={handleConfirm}
+                        disabled={isProcessing}
+                        className={`px-6 py-2 ${isProcessing ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white rounded-md`}
+                    >
+                        {isProcessing ? 'Processing...' : 'Confirm Timetables'}
+                    </button>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
 
-export default Emploi;
+export default PreviewTimetables;

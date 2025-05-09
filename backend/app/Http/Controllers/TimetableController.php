@@ -14,14 +14,29 @@ use Illuminate\Support\Facades\Log;
 
 class TimetableController extends Controller
 {
-
-    public function index()
+    /**
+     * Get timetables with optional status filter
+     */
+    public function index(Request $request)
     {
-        $timetables = Timetable::with(['course', 'teacher', 'classroom', 'semester.year.filier'])->get();
+        // Filter by status if provided
+        $status = $request->query('status');
+
+        $query = Timetable::with(['course', 'teacher', 'classroom', 'semester.year.filier']);
+
+        // Add status filter if provided
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        $timetables = $query->get();
 
         return response()->json($timetables);
     }
 
+    /**
+     * Get timetables for a specific teacher
+     */
     public function teacherTimetable(Teacher $teacher)
     {
         $timetables = Timetable::with([
@@ -36,13 +51,14 @@ class TimetableController extends Controller
         return response()->json($timetables);
     }
 
-
+    /**
+     * Generate timetables for first half semesters (S1, S3)
+     */
     public function generateS1Timetables(Request $request)
     {
-
-        // Clear all existing timetables automatically
+        // Clear ALL existing timetables (both confirmed and unconfirmed)
         try {
-            Timetable::truncate(); // This resets auto-increment counters too
+            Timetable::truncate(); // This completely clears the table
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -56,7 +72,6 @@ class TimetableController extends Controller
             ->get()
             ->groupBy('year.filier.id');
 
-
         // 2. Get all classrooms
         $classrooms = Classroom::all();
 
@@ -64,7 +79,7 @@ class TimetableController extends Controller
         $allDisponibilities = $this->generateDisponibilities($classrooms);
         $usedDisponibilities = []; // Track ALL used disponibilities globally
 
-        // NEW: Track used time slots per semester instead of per program
+        // Track used time slots per semester
         $usedSemesterSlots = [];
 
         $allTimetables = [];
@@ -96,6 +111,7 @@ class TimetableController extends Controller
                         if (!isset($usedDisponibilities[$globalSlotKey]) &&
                             !isset($usedSemesterSlots[$semester->id][$semesterSlotKey])) {
                             try {
+                                // Add status field to mark as unconfirmed
                                 $timetable = Timetable::create([
                                     'course_id' => $subject->id,
                                     'teacher_id' => $subject->teachers->first()->id,
@@ -104,7 +120,8 @@ class TimetableController extends Controller
                                     'day' => $slot['day'],
                                     'start_time' => $slot['start_time'],
                                     'end_time' => $slot['end_time'],
-                                    'filier_id' => $filierId
+                                    'filier_id' => $filierId,
+                                    'status' => 'unconfirmed' // Mark as unconfirmed
                                 ]);
 
                                 $allTimetables[] = $timetable;
@@ -128,25 +145,28 @@ class TimetableController extends Controller
             }
         }
 
+        // Fetch the complete timetable data with all relations for the frontend
+        $completeTimetables = Timetable::with(['course', 'teacher', 'classroom', 'semester.year.filier'])
+            ->where('status', 'unconfirmed')
+            ->get();
+
         return response()->json([
             'success' => empty($conflicts),
             'timetables_created' => count($allTimetables),
             'remaining_disponibilities' => count($allDisponibilities),
             'conflicts' => $conflicts,
-            'data' => $allTimetables
+            'data' => $completeTimetables
         ]);
     }
 
-
-
-
-    // S2, S4
+    /**
+     * Generate timetables for second half semesters (S2, S4)
+     */
     public function generateS2Timetables(Request $request)
     {
-
-        // Clear all existing timetables automatically
+        // Clear ALL existing timetables (both confirmed and unconfirmed)
         try {
-            Timetable::truncate(); // This resets auto-increment counters too
+            Timetable::truncate(); // This completely clears the table
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -154,13 +174,11 @@ class TimetableController extends Controller
             ], 500);
         }
 
-
         // 1. Get all S2 and S4 semesters grouped by filière
         $s2Semesters = Semester::whereIn('semName', ['S2', 'S4'])
             ->with(['year.filier', 'subjects.teachers'])
             ->get()
             ->groupBy('year.filier.id');
-
 
         // 2. Get all classrooms
         $classrooms = Classroom::all();
@@ -169,7 +187,7 @@ class TimetableController extends Controller
         $allDisponibilities = $this->generateDisponibilities($classrooms);
         $usedDisponibilities = []; // Track ALL used disponibilities globally
 
-        // NEW: Track used time slots per semester instead of per program
+        // Track used time slots per semester
         $usedSemesterSlots = [];
 
         $allTimetables = [];
@@ -201,6 +219,7 @@ class TimetableController extends Controller
                         if (!isset($usedDisponibilities[$globalSlotKey]) &&
                             !isset($usedSemesterSlots[$semester->id][$semesterSlotKey])) {
                             try {
+                                // Add status field to mark as unconfirmed
                                 $timetable = Timetable::create([
                                     'course_id' => $subject->id,
                                     'teacher_id' => $subject->teachers->first()->id,
@@ -209,7 +228,8 @@ class TimetableController extends Controller
                                     'day' => $slot['day'],
                                     'start_time' => $slot['start_time'],
                                     'end_time' => $slot['end_time'],
-                                    'filier_id' => $filierId
+                                    'filier_id' => $filierId,
+                                    'status' => 'unconfirmed' // Mark as unconfirmed
                                 ]);
 
                                 $allTimetables[] = $timetable;
@@ -233,16 +253,23 @@ class TimetableController extends Controller
             }
         }
 
+        // Fetch the complete timetable data with all relations for the frontend
+        $completeTimetables = Timetable::with(['course', 'teacher', 'classroom', 'semester.year.filier'])
+            ->where('status', 'unconfirmed')
+            ->get();
+
         return response()->json([
             'success' => empty($conflicts),
             'timetables_created' => count($allTimetables),
             'remaining_disponibilities' => count($allDisponibilities),
             'conflicts' => $conflicts,
-            'data' => $allTimetables
+            'data' => $completeTimetables
         ]);
     }
 
-
+    /**
+     * Generate all possible timeslots
+     */
     private function generateDisponibilities($classrooms)
     {
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -271,4 +298,72 @@ class TimetableController extends Controller
         return $disponibilities;
     }
 
+    /**
+     * Confirm generated timetables
+     */
+    public function confirmTimetables()
+    {
+        try {
+            // Update all unconfirmed timetables to confirmed status
+            $updated = Timetable::where('status', 'unconfirmed')
+                ->update(['status' => 'confirmed']);
+
+            // Log for debugging
+            Log::info('Confirmed timetables', ['count' => $updated]);
+
+            // Create notifications for teachers and students
+            if ($updated > 0) {
+                try {
+                    // Create a notification for teachers
+                    $teacherNotification = new Notification();
+                    $teacherNotification->type = 'timetable-update';
+                    $teacherNotification->message = 'New timetable has been published';
+                    $teacherNotification->user_type = 'teacher';
+                    $teacherNotification->broadcast = true;
+                    $teacherNotification->read = false;
+                    $teacherNotification->save();
+
+                    // Create a notification for students
+                    $studentNotification = new Notification();
+                    $studentNotification->type = 'timetable-update';
+                    $studentNotification->message = 'New timetable has been published';
+                    $studentNotification->user_type = 'student';
+                    $studentNotification->broadcast = true;
+                    $studentNotification->read = false;
+                    $studentNotification->save();
+
+                    Log::info('Timetable notifications created for teachers and students');
+                } catch (\Exception $e) {
+                    Log::error('Failed to create notifications', ['error' => $e->getMessage()]);
+                    // Continue with the confirmation process even if notifications fail
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Timetables confirmed successfully',
+                'updated_count' => $updated
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error confirming timetables', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error confirming timetables: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
+     * Delete all unconfirmed timetables
+     */
+    public function destroyAll()
+    {
+        // Delete only unconfirmed timetables
+        Timetable::whereIn('status', ['unconfirmed', 'confirmed'])->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Unconfirmed timetables deleted successfully'
+        ]);
+    }
 }
