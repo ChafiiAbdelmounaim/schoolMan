@@ -2,17 +2,18 @@ import { NavLink } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const sidebarItems = [
-    {name: "Analytics", icon: "fas fa-chart-line"},
-    {name: "Students", icon: "fas fa-users"},
-    {name: "Teachers", icon: "fas fa-chalkboard-teacher"},
-    {name: "Classrooms", icon: "fas fa-door-open"},
-    {name: "Subjects", icon: "fas fa-book"},
-    {name: "Filiers", icon: "fas fa-layer-group"},
-    {name: "Years", icon: "fas fa-calendar"},
-    {name: "Semesters", icon: "fa-solid fa-circle-half-stroke"},
-    {name: "Emploi", icon: "fa-solid fa-gear"},
-    {name: "Timetables", icon: "fa-regular fa-calendar-days"},
-    {name: "Announcements", icon: "fa fa-bell"},
+    {name: "Analytics", url: 'Analytics', icon: "fas fa-chart-line"},
+    {name: "Students", url: 'Students', icon: "fas fa-users"},
+    {name: "Teachers", url: 'Teachers', icon: "fas fa-chalkboard-teacher"},
+    {name: "Classrooms", url: 'Classrooms', icon: "fas fa-door-open"},
+    {name: "Subjects", url: 'Subjects', icon: "fas fa-book"},
+    {name: "Filiers", url: 'Filiers', icon: "fas fa-layer-group"},
+    {name: "Years", url: 'Years', icon: "fas fa-calendar"},
+    {name: "Semesters", url: 'Semesters', icon: "fa-solid fa-circle-half-stroke"},
+    {name: "All Timetables", url: 'Emploi', icon: "fa-regular fa-calendar-days"},
+    {name: "Generate Timetables", url: 'Timetables', icon: "fa-solid fa-gear"},
+    {name: "Announcements", url: 'Announcements', icon: "fa fa-bell"},
+    {name: "Add Administrators", url: 'Register', icon: "fa fa-user-plus"},
 ];
 
 const SideBar = () => {
@@ -35,7 +36,7 @@ const SideBar = () => {
                     {sidebarItems.map((item) => (
                         <NavLink
                             key={item.name}
-                            to={`/${item.name.toLowerCase()}`}
+                            to={`/${item.url.toLowerCase()}`}
                             className={({ isActive }) =>
                                 `flex items-center py-3 px-4 rounded-md hover:bg-gray-700 transition ${isActive ? "bg-gray-700" : ""}`
                             }

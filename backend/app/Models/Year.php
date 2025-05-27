@@ -16,4 +16,8 @@ class Year extends Model
         return $this->belongsTo(Filier::class);
     }
 
+    public function semesters()
+    {
+        return $this->hasMany(Semester::class);
+    }
 }

@@ -101,6 +101,16 @@ const Emploi = () => {
         }
     };
 
+    // Function to navigate to edit page for a specific semester
+    const handleTimetableClick = (semesterId, semesterInfo) => {
+        navigate(`/edit-timetable/${semesterId}`, {
+            state: {
+                timetableData: timetables.filter(item => item.semester_id === semesterId),
+                semesterInfo: semesterInfo
+            }
+        });
+    };
+
     const getCellContent = (semesterId, day, slot) => {
         const entry = timetables.find(item =>
             item.day === day &&
@@ -162,12 +172,27 @@ const Emploi = () => {
                 const semesterTimetables = timetables.filter(item => item.semester_id === semesterId);
                 if (semesterTimetables.length === 0) return null;
 
+                // Get semester info for this timetable
+                const semesterInfo = {
+                    program: semesterTimetables[0]?.semester?.year?.filier?.name || 'Unknown Program',
+                    year: semesterTimetables[0]?.semester?.year?.year_number || '?',
+                    semester: semesterTimetables[0]?.semester?.semName || '?',
+                };
+
+                // Create title for the timetable
+                const timetableTitle = `${semesterInfo.program} - Year ${semesterInfo.year} - Semester ${semesterInfo.semester}`;
+
                 return (
                     <div key={semesterId} className="mb-8 border rounded-md shadow-sm">
-                        <h3 className="text-xl font-semibold mb-4 p-4 bg-gray-50 rounded-t-md">
-                            {semesterTimetables[0]?.semester?.year?.filier?.name || 'Unknown Program'} -
-                            Year {semesterTimetables[0]?.semester?.year?.year_number || '?'} -
-                            Semester {semesterTimetables[0]?.semester?.semName || '?'}
+                        {/* Make the title clickable */}
+                        <h3
+                            className="text-xl font-semibold mb-4 p-4 bg-gray-50 rounded-t-md cursor-pointer hover:bg-gray-100 flex justify-between items-center"
+                            onClick={() => handleTimetableClick(semesterId, semesterInfo)}
+                        >
+                            <span>{timetableTitle}</span>
+                            {/*<svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">*/}
+                            {/*    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>*/}
+                            {/*</svg>*/}
                         </h3>
 
                         <div className="overflow-x-auto p-4">

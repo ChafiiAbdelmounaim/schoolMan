@@ -52,22 +52,22 @@ const AdminNavbar = () => {
             {/* Right Section: Notifications, Messages, User Name */}
             <div className="flex items-center space-x-4 relative">
                 {/* Left Section: Dark Mode Toggle */}
-                <button
-                    onClick={toggleDarkMode}
-                    className="p-2 text-xl"
-                >
-                    <i className={darkMode ? "fas fa-sun" : "fas fa-moon"}></i> {/* Dark Mode Toggle Icon */}
-                </button>
+                {/*<button*/}
+                {/*    onClick={toggleDarkMode}*/}
+                {/*    className="p-2 text-xl"*/}
+                {/*>*/}
+                {/*    <i className={darkMode ? "fas fa-sun" : "fas fa-moon"}></i> /!* Dark Mode Toggle Icon *!/*/}
+                {/*</button>*/}
 
-                {/* Notification Icon */}
-                <button className="p-2 text-xl">
-                    <i className="fas fa-bell"></i>
-                </button>
+                {/*/!* Notification Icon *!/*/}
+                {/*<button className="p-2 text-xl">*/}
+                {/*    <i className="fas fa-bell"></i>*/}
+                {/*</button>*/}
 
-                {/* Message Icon */}
-                <button className="p-2 text-xl">
-                    <i className="fas fa-comment"></i>
-                </button>
+                {/*/!* Message Icon *!/*/}
+                {/*<button className="p-2 text-xl">*/}
+                {/*    <i className="fas fa-comment"></i>*/}
+                {/*</button>*/}
 
                 {/* Person Icon (click to toggle popup) */}
                 <button
@@ -79,7 +79,7 @@ const AdminNavbar = () => {
 
                 {/* Popup (show user name and logout button) */}
                 {isPopupOpen && (
-                    <div className="absolute top-12 right-0 w-64 bg-white text-black shadow-lg rounded-lg p-4">
+                    <div className="absolute top-12 right-0 w-64 bg-white text-black shadow-lg rounded-lg p-4 z-50">
                         <div className="text-center border-b pb-3">
                             <h2 className="text-lg font-bold">{user.name ? user.name.charAt(0).toUpperCase() + user.name.slice(1) : ""}</h2>
                             <span className="bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-md">Administator</span>

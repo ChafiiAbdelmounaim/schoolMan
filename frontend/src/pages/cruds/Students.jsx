@@ -506,7 +506,7 @@ const Students = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-800">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">ID</th>
+                        {/*<th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">ID</th>*/}
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Full Name</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Apogee</th>
@@ -519,7 +519,7 @@ const Students = () => {
                     {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
                             <tr key={student.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.id}</td>
+                                {/*<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.id}</td>*/}
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     {student.full_name}
                                 </td>

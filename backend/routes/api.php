@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FilierController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SemesterController;
@@ -19,6 +21,7 @@ use Illuminate\Http\Request;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
 
 // Protected routes (require valid token)
 Route::middleware('auth:sanctum')->group(function () {
@@ -141,6 +144,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/generate-s1-timetables', [TimetableController::class, 'generateS1Timetables']);
     Route::post('/generate-s2-timetables', [TimetableController::class, 'generateS2Timetables']);
 
+
+
+    // analytics
+    Route::get('/analytics', [AnalyticsController::class, 'getAnalytics']);
 });
 
 Route::get('/emploi', [TimetableController::class, 'index']);
@@ -148,3 +155,9 @@ Route::post('/confirm-timetables', [TimetableController::class, 'confirmTimetabl
 Route::delete('/cancel-timetables', [TimetableController::class, 'destroyAll']);
 
 Route::get('/teacher/{teacher}/timetable', [TimetableController::class, 'teacherTimetable']);
+Route::get('/timetable/{semesterId}', [TimetableController::class, 'getSemesterTimetable']);
+Route::post('/timetable', [TimetableController::class, 'store']);
+Route::put('/timetable/{id}', [TimetableController::class, 'update']);
+Route::delete('/timetable/{id}', [TimetableController::class, 'destroy']);
+
+

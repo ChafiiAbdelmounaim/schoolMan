@@ -10,4 +10,14 @@ class Filier extends Model
     use HasFactory;
 
     protected $fillable = ['name'];
+
+    public function students()
+    {
+        return $this->hasMany(Student::class);
+    }
+
+    public function years()
+    {
+        return $this->hasMany(Year::class);
+    }
 }

@@ -31,6 +31,9 @@ import PreviewTimetables from "./pages/timetables/PreviewTimetables.jsx";
 import AnnouncementList from "./pages/announcement/AnnouncementList.jsx";
 import AnnouncementDetail from "./pages/announcement/AnnouncementDetail.jsx";
 import Announcement from "./pages/announcement/Announcement.jsx";
+import EditTimetable from "./pages/timetables/EditTimetable.jsx";
+import AnalyticsDashboard from "./pages/analytics/AnalyticsDashboard.jsx";
+
 
 
 
@@ -41,7 +44,7 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "/",
-                element: <GuestOnlyRoute><HomePage /></GuestOnlyRoute>,
+                element: <GuestOnlyRoute><AdminLogin /></GuestOnlyRoute>,
             },
             // Admin routes
             {
@@ -50,7 +53,11 @@ const router = createBrowserRouter([
             },
             {
                 path: "/register",
-                element: <LoggedInRoute><RegisterAdmin /></LoggedInRoute>,
+                element: <ProtectedRoute><AdminRoute><RegisterAdmin /></AdminRoute></ProtectedRoute>,
+            },
+            {
+                path : "/analytics",
+                element : <ProtectedRoute><AdminRoute><AnalyticsDashboard /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/subjects",
@@ -111,6 +118,10 @@ const router = createBrowserRouter([
             {
                 path: "/announcements/:id",
                 element: <ProtectedRoute><AdminRoute><AnnouncementDetail /></AdminRoute></ProtectedRoute>
+            },
+            {
+                path: "/edit-timetable/:semesterId",
+                element: <ProtectedRoute><AdminRoute><EditTimetable /></AdminRoute></ProtectedRoute>
             },
 
             // Teacher routes
