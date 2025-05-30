@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const Timetable = () => {
     const navigate = useNavigate();
@@ -8,9 +9,20 @@ const Timetable = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [generationType, setGenerationType] = useState(null);
 
-    const confirmGeneration = (type) => {
-        const message = "This will clear all existing timetables. Are you sure you want to continue?";
-        if (window.confirm(message)) {
+    const confirmGeneration = async (type) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "This will clear all existing timetables. Are you sure you want to continue?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, continue!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        });
+
+        if (result.isConfirmed) {
             handleGenerateTimetables(type);
         }
     };
@@ -34,24 +46,52 @@ const Timetable = () => {
             console.log("Generation response:", response.data);
 
             if (response.data.success) {
+                await Swal.fire({
+                    title: 'Success!',
+                    text: 'Timetables generated successfully!',
+                    icon: 'success',
+                    confirmButtonColor: '#10b981'
+                });
                 navigate('/preview-timetables');
             } else {
                 // Show conflicts if there are any
                 if (response.data.conflicts && response.data.conflicts.length > 0) {
-                    alert(`Generation completed with conflicts: ${response.data.conflicts.join(', ')}`);
+                    await Swal.fire({
+                        title: 'Generation Completed',
+                        text: `Generation completed with conflicts: ${response.data.conflicts.join(', ')}`,
+                        icon: 'warning',
+                        confirmButtonColor: '#f59e0b'
+                    });
                 }
                 navigate('/preview-timetables');
             }
         } catch (error) {
             console.error("Error generating timetables:", error);
-            alert(error.response?.data?.message || "Generation failed");
+            await Swal.fire({
+                title: 'Generation Failed',
+                text: error.response?.data?.message || "Generation failed",
+                icon: 'error',
+                confirmButtonColor: '#ef4444'
+            });
         } finally {
             setIsGenerating(false);
         }
     };
 
     const handleDeleteAllTimetables = async () => {
-        if (!window.confirm("Are you sure you want to delete all timetables? This action cannot be undone.")) {
+        const result = await Swal.fire({
+            title: 'Delete All Timetables?',
+            text: "Are you sure you want to delete all timetables? This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete them!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        });
+
+        if (!result.isConfirmed) {
             return;
         }
 
@@ -63,10 +103,20 @@ const Timetable = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            alert("All timetables successfully deleted");
+            await Swal.fire({
+                title: 'Deleted!',
+                text: 'All timetables have been successfully deleted.',
+                icon: 'success',
+                confirmButtonColor: '#10b981'
+            });
         } catch (error) {
             console.error("Error deleting timetables:", error);
-            alert(error.response?.data?.message || "Failed to delete timetables");
+            await Swal.fire({
+                title: 'Delete Failed',
+                text: error.response?.data?.message || "Failed to delete timetables",
+                icon: 'error',
+                confirmButtonColor: '#ef4444'
+            });
         } finally {
             setIsDeleting(false);
         }

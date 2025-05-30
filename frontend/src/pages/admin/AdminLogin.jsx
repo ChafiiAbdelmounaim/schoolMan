@@ -43,7 +43,7 @@ function AdminLogin() {
             login({ email, password })
                 .then((response) => {
                     if (response.role === 'user') {
-                        navigate("/students");
+                        navigate("/analytics");
                     }else if(response.role === 'teacher'){
                         navigate("/teacher/dashboard");
                     }else if(response.role === 'student'){

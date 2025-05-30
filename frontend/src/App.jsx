@@ -33,6 +33,7 @@ import AnnouncementDetail from "./pages/announcement/AnnouncementDetail.jsx";
 import Announcement from "./pages/announcement/Announcement.jsx";
 import EditTimetable from "./pages/timetables/EditTimetable.jsx";
 import AnalyticsDashboard from "./pages/analytics/AnalyticsDashboard.jsx";
+import AccountSettings from "./pages/admin/AccountSettings.jsx";
 
 
 
@@ -58,6 +59,10 @@ const router = createBrowserRouter([
             {
                 path : "/analytics",
                 element : <ProtectedRoute><AdminRoute><AnalyticsDashboard /></AdminRoute></ProtectedRoute>
+            },
+            {
+                path : "/settings",
+                element : <ProtectedRoute><AdminRoute><AccountSettings /></AdminRoute></ProtectedRoute>
             },
             {
                 path : "/subjects",

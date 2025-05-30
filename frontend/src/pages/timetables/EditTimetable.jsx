@@ -25,6 +25,7 @@ const EditTimetable = () => {
     const [loading, setLoading] = useState(true);
     const [loadingTimeout, setLoadingTimeout] = useState(false);
     const [optionsLoading, setOptionsLoading] = useState(false);
+    const [teachersLoading, setTeachersLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -79,8 +80,8 @@ const EditTimetable = () => {
                     // Initialize used slots tracking
                     initializeUsedSlots(res.data);
 
-                    // Now fetch edit options (courses, teachers, classrooms)
-                    fetchOptions();
+                    // Fetch initial options (subjects and classrooms)
+                    fetchInitialOptions();
                 } else {
                     setError("Invalid data format received from server");
                 }
@@ -130,19 +131,16 @@ const EditTimetable = () => {
         setUsedSlots({ global, semester, teacher });
     };
 
-    // Fetch options for editing (courses, teachers, classrooms)
-    const fetchOptions = async () => {
+    // Fetch initial options (subjects and classrooms only)
+    const fetchInitialOptions = async () => {
         setOptionsLoading(true);
 
         try {
             const token = localStorage.getItem("token");
 
-            // Parallel requests for better performance
-            const [coursesRes, teachersRes, classroomsRes] = await Promise.all([
-                axios.get('http://localhost:8000/api/courses', {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                axios.get('http://localhost:8000/api/teachers', {
+            // Parallel requests for subjects specific to this semester and all classrooms
+            const [subjectsRes, classroomsRes] = await Promise.all([
+                axios.get(`http://localhost:8000/api/semester/${semesterId}/subjects`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }),
                 axios.get('http://localhost:8000/api/classrooms', {
@@ -151,20 +149,55 @@ const EditTimetable = () => {
             ]);
 
             setEditOptions({
-                courses: coursesRes.data || [],
-                teachers: teachersRes.data || [],
+                courses: subjectsRes.data || [],
+                teachers: [], // Will be loaded when subject is selected
                 classrooms: classroomsRes.data || []
             });
         } catch (err) {
-            console.error("Error fetching options:", err);
-            // We don't set a fatal error here, just a warning
+            console.error("Error fetching initial options:", err);
             setError(prev => prev || "Some edit options could not be loaded. Editing functionality may be limited.");
         } finally {
             setOptionsLoading(false);
         }
     };
 
-    // Function to check for conflicts
+    // Fetch teachers for selected subject
+    const fetchTeachersForSubject = async (subjectId) => {
+        if (!subjectId) {
+            setEditOptions(prev => ({ ...prev, teachers: [] }));
+            return;
+        }
+
+        setTeachersLoading(true);
+
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get(`http://localhost:8000/api/subject/${subjectId}/teachers`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setEditOptions(prev => ({ ...prev, teachers: res.data || [] }));
+        } catch (err) {
+            console.error("Error fetching teachers for subject:", err);
+            setError("Failed to load teachers for the selected subject.");
+        } finally {
+            setTeachersLoading(false);
+        }
+    };
+
+    // Handle subject selection
+    const handleSubjectChange = (subjectId) => {
+        setEditValues(prev => ({
+            ...prev,
+            course_id: subjectId,
+            teacher_id: '' // Reset teacher selection
+        }));
+
+        // Fetch teachers for this subject
+        fetchTeachersForSubject(subjectId);
+    };
+
+    // Function to check for conflicts (FIXED: excludes current entry)
     const checkAvailability = (values, originalId = null) => {
         // Global slot key (classroom-day-time)
         const globalKey = `${values.classroom_id}-${editingCell.day}-${editingCell.start}`;
@@ -175,13 +208,15 @@ const EditTimetable = () => {
         // Teacher slot key (teacher-day-time)
         const teacherKey = `${values.teacher_id}-${editingCell.day}-${editingCell.start}`;
 
-        // Check if classroom is already booked at this time
+        // FIXED: Check if classroom is already booked at this time (excluding current entry)
         const classroomBusy = usedSlots.global[globalKey] && usedSlots.global[globalKey] !== originalId;
+        console.log("OriginID : " + originalId)
+        console.log("UsedShit : " + usedSlots.global[globalKey])
 
-        // Check if semester already has a class at this time
+        // FIXED: Check if semester already has a class at this time (excluding current entry)
         const semesterTimeBusy = usedSlots.semester[semesterKey] && usedSlots.semester[semesterKey] !== originalId;
 
-        // Check if teacher is already booked at this time
+        // FIXED: Check if teacher is already booked at this time (excluding current entry)
         const teacherBusy = usedSlots.teacher[teacherKey] && usedSlots.teacher[teacherKey] !== originalId;
 
         if (classroomBusy) {
@@ -220,6 +255,11 @@ const EditTimetable = () => {
                 teacher_id: entry.teacher_id || '',
                 classroom_id: entry.classroom_id || ''
             });
+
+            // Load teachers for the current subject
+            if (entry.course_id) {
+                fetchTeachersForSubject(entry.course_id);
+            }
         } else {
             // Adding new entry
             setEditingCell({
@@ -235,6 +275,9 @@ const EditTimetable = () => {
                 teacher_id: '',
                 classroom_id: ''
             });
+
+            // Reset teachers list
+            setEditOptions(prev => ({ ...prev, teachers: [] }));
         }
     };
 
@@ -246,7 +289,7 @@ const EditTimetable = () => {
             return;
         }
 
-        // Check for conflicts
+        // Check for conflicts (FIXED: passes current entry ID to exclude it from conflict check)
         const availabilityError = checkAvailability(editValues, editingCell.id);
         if (availabilityError) {
             setError(availabilityError);
@@ -380,7 +423,7 @@ const EditTimetable = () => {
                     <select
                         className="w-full p-1 text-sm border rounded"
                         value={editValues.course_id}
-                        onChange={(e) => setEditValues({...editValues, course_id: e.target.value})}
+                        onChange={(e) => handleSubjectChange(e.target.value)}
                     >
                         <option value="">Select Course</option>
                         {editOptions.courses.map(course => (
@@ -395,8 +438,16 @@ const EditTimetable = () => {
                         className="w-full p-1 text-sm border rounded"
                         value={editValues.teacher_id}
                         onChange={(e) => setEditValues({...editValues, teacher_id: e.target.value})}
+                        disabled={!editValues.course_id || teachersLoading}
                     >
-                        <option value="">Select Teacher</option>
+                        <option value="">
+                            {!editValues.course_id
+                                ? "Select a course first"
+                                : teachersLoading
+                                    ? "Loading teachers..."
+                                    : "Select Teacher"
+                            }
+                        </option>
                         {editOptions.teachers.map(teacher => (
                             <option key={teacher.id} value={teacher.id}>{teacher.full_name}</option>
                         ))}
@@ -636,6 +687,7 @@ const EditTimetable = () => {
                 <h4 className="font-semibold mb-2">Editing Instructions:</h4>
                 <ul className="list-disc pl-5 text-sm">
                     <li>Click on any cell to add or edit a class.</li>
+                    <li>Select a course first, then choose from available teachers for that course.</li>
                     <li>Each time slot can only have one class per semester.</li>
                     <li>Each classroom can only be used once per time slot.</li>
                     <li>Each teacher can only teach one class at a time.</li>

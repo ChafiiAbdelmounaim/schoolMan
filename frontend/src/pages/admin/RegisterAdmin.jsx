@@ -43,7 +43,7 @@ function RegisterAdmin() {
         } else {
             setErrorMessage("");
             register({ name, email, password })
-                .then(() => getUser().then(() => navigate("/students")))
+                .then(() => getUser().then(() => navigate("/analytics")))
                 .catch((err) => setErrorMessage(err.message || "Registration failed"))
                 .finally(() => setIsLoading(false));
         }

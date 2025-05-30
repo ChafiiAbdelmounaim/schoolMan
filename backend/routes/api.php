@@ -160,4 +160,8 @@ Route::post('/timetable', [TimetableController::class, 'store']);
 Route::put('/timetable/{id}', [TimetableController::class, 'update']);
 Route::delete('/timetable/{id}', [TimetableController::class, 'destroy']);
 
+// edit timetable
+Route::get('/semester/{semesterId}/subjects', [TimetableController::class, 'getSemesterSubjects']);
+Route::get('/subject/{subjectId}/teachers', [TimetableController::class, 'getSubjectTeachers']);
+
 

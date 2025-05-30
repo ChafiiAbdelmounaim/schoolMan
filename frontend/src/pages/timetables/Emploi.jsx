@@ -75,7 +75,7 @@ const Emploi = () => {
             });
 
             alert('Timetables confirmed successfully!');
-            navigate('/'); // Or wherever you want to redirect after confirmation
+            navigate('/analytics'); // Or wherever you want to redirect after confirmation
         } catch (error) {
             console.error("Confirmation failed:", error);
             alert("Failed to confirm timetables");
@@ -190,9 +190,9 @@ const Emploi = () => {
                             onClick={() => handleTimetableClick(semesterId, semesterInfo)}
                         >
                             <span>{timetableTitle}</span>
-                            {/*<svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">*/}
-                            {/*    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>*/}
-                            {/*</svg>*/}
+                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                            </svg>
                         </h3>
 
                         <div className="overflow-x-auto p-4">

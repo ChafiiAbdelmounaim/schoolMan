@@ -29,9 +29,31 @@ class NotificationController extends Controller
                 $query->where('user_type', $userType)
                     ->where('broadcast', true);
             })
+            ->where('type', '!=', 'read-marker') // Exclude read markers from the list
             ->orderBy('created_at', 'desc')
             ->take(20)
             ->get();
+
+        // Get all read markers for this user
+        $readMarkers = Notification::where('type', 'read-marker')
+            ->where('user_type', $userType)
+            ->where('user_id', $userId)
+            ->get()
+            ->pluck('data')
+            ->map(function($data) {
+                $decoded = is_string($data) ? json_decode($data, true) : $data;
+                return $decoded['notification_id'] ?? null;
+            })
+            ->filter()
+            ->toArray();
+
+        // Mark broadcast notifications as read if they have read markers
+        $notifications = $notifications->map(function($notification) use ($readMarkers) {
+            if ($notification->broadcast && in_array($notification->id, $readMarkers)) {
+                $notification->read = true;
+            }
+            return $notification;
+        });
 
         return response()->json($notifications);
     }
@@ -68,7 +90,7 @@ class NotificationController extends Controller
             $hasReadMarker = Notification::where('type', 'read-marker')
                 ->where('user_type', $userType)
                 ->where('user_id', $userId)
-                ->where('data->notification_id', $latestTimetableNotification->id)
+                ->whereJsonContains('data->notification_id', $latestTimetableNotification->id)
                 ->exists();
         }
 
@@ -105,7 +127,7 @@ class NotificationController extends Controller
                 $existingMarker = Notification::where('type', 'read-marker')
                     ->where('user_type', $userType)
                     ->where('user_id', $userId)
-                    ->where('data->notification_id', $notification->id)
+                    ->whereJsonContains('data->notification_id', $notification->id)
                     ->first();
 
                 if (!$existingMarker) {
@@ -117,9 +139,9 @@ class NotificationController extends Controller
                         'user_id' => $userId,
                         'broadcast' => false,
                         'read' => true,
-                        'data' => json_encode([
+                        'data' => [
                             'notification_id' => $notification->id
-                        ])
+                        ]
                     ]);
                 }
             } else {
@@ -148,6 +170,7 @@ class NotificationController extends Controller
         $broadcastNotifications = Notification::where('user_type', $userType)
             ->where('broadcast', true)
             ->where('read', false)
+            ->where('type', '!=', 'read-marker')
             ->get();
 
         // Create read markers for all broadcast notifications
@@ -156,7 +179,7 @@ class NotificationController extends Controller
             $existingMarker = Notification::where('type', 'read-marker')
                 ->where('user_type', $userType)
                 ->where('user_id', $userId)
-                ->where('data->notification_id', $notification->id)
+                ->whereJsonContains('data->notification_id', $notification->id)
                 ->first();
 
             if (!$existingMarker) {
@@ -168,9 +191,9 @@ class NotificationController extends Controller
                     'user_id' => $userId,
                     'broadcast' => false,
                     'read' => true,
-                    'data' => json_encode([
+                    'data' => [
                         'notification_id' => $notification->id
-                    ])
+                    ]
                 ]);
             }
         }
@@ -179,6 +202,7 @@ class NotificationController extends Controller
         Notification::where('user_type', $userType)
             ->where('user_id', $userId)
             ->where('read', false)
+            ->where('type', '!=', 'read-marker')
             ->update(['read' => true]);
 
         return response()->json(['success' => true]);

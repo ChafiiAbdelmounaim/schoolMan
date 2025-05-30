@@ -10,6 +10,7 @@ use App\Models\Semester;
 use App\Models\Timetable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -131,6 +132,7 @@ class TimetableController extends Controller
             'course_id' => 'required|exists:subjects,id',
             'teacher_id' => 'required|exists:teachers,id',
             'classroom_id' => 'required|exists:classrooms,id',
+            'semester_id' => 'required|exists:semesters,id', // ✅ Added this missing validation
             'day' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday',
             'start_time' => 'required|date_format:H:i:s',
             'end_time' => 'required|date_format:H:i:s',
@@ -158,6 +160,7 @@ class TimetableController extends Controller
                 'course_id' => $request->course_id,
                 'teacher_id' => $request->teacher_id,
                 'classroom_id' => $request->classroom_id,
+                'semester_id' => $request->semester_id, // ✅ Added this missing field
                 'day' => $request->day,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
@@ -273,9 +276,6 @@ class TimetableController extends Controller
     }
 
     /**
-     * Check for conflicts with existing timetable entries (optimized)
-     */
-    /**
      * Check for conflicts with existing timetable entries
      *
      * @param Request $request
@@ -284,72 +284,61 @@ class TimetableController extends Controller
      */
     private function checkForConflicts(Request $request, $excludeId = null)
     {
-        // Get the semester for this request
-        $semesterId = $request->semester_id ?? Timetable::find($excludeId)->semester_id;
+        // Get the semester for this request - prioritize request data, fallback to existing entry
+        $semesterId = $request->semester_id ?? ($excludeId ? Timetable::find($excludeId)->semester_id : null);
 
-        // Performance optimization: Use one query with OR conditions instead of multiple queries
-        $conflicts = Timetable::where(function($query) use ($request, $excludeId, $semesterId) {
-            // Classroom conflict check
-            $query->where('classroom_id', $request->classroom_id)
-                ->where('day', $request->day)
-                ->where('start_time', $request->start_time);
-        })
-            ->orWhere(function($query) use ($request, $semesterId) {
-                // Semester conflict check
-                $query->where('semester_id', $semesterId)
-                    ->where('day', $request->day)
-                    ->where('start_time', $request->start_time);
-            })
-            ->orWhere(function($query) use ($request) {
-                // Teacher conflict check
-                $query->where('teacher_id', $request->teacher_id)
-                    ->where('day', $request->day)
-                    ->where('start_time', $request->start_time);
-            });
+        if (!$semesterId) {
+            return 'Semester ID is required for conflict checking';
+        }
+
+        // Check each type of conflict separately to properly exclude the current entry
+
+        // Check classroom conflicts
+        $classroomConflicts = Timetable::where('classroom_id', $request->classroom_id)
+            ->where('day', $request->day)
+            ->where('start_time', $request->start_time);
 
         // Exclude the current entry if updating
         if ($excludeId) {
-            $conflicts->where('id', '!=', $excludeId);
-        }
-
-        // Get all conflicts in one query
-        $conflictResults = $conflicts->get();
-
-        // Check classroom conflicts
-        $classroomConflict = $conflictResults->first(function ($item) use ($request) {
-            return $item->classroom_id == $request->classroom_id
-                && $item->day == $request->day
-                && $item->start_time == $request->start_time;
-        });
-
-        if ($classroomConflict) {
-            return 'This classroom is already booked for this time slot.';
+            $classroomConflicts->where('id', '!=', $excludeId);
         }
 
         // Check semester conflicts
-        $semesterConflict = $conflictResults->first(function ($item) use ($semesterId, $request) {
-            return $item->semester_id == $semesterId
-                && $item->day == $request->day
-                && $item->start_time == $request->start_time;
-        });
+        $semesterConflicts = Timetable::where('semester_id', $semesterId)
+            ->where('day', $request->day)
+            ->where('start_time', $request->start_time);
 
-        if ($semesterConflict) {
-            return 'This semester already has a class scheduled during this time slot.';
+        // Exclude the current entry if updating
+        if ($excludeId) {
+            $semesterConflicts->where('id', '!=', $excludeId);
         }
 
         // Check teacher conflicts
-        $teacherConflict = $conflictResults->first(function ($item) use ($request) {
-            return $item->teacher_id == $request->teacher_id
-                && $item->day == $request->day
-                && $item->start_time == $request->start_time;
-        });
+        $teacherConflicts = Timetable::where('teacher_id', $request->teacher_id)
+            ->where('day', $request->day)
+            ->where('start_time', $request->start_time);
 
-        if ($teacherConflict) {
+        // Exclude the current entry if updating
+        if ($excludeId) {
+            $teacherConflicts->where('id', '!=', $excludeId);
+        }
+
+        // Check if any conflicts exist
+        if ($classroomConflicts->exists()) {
+            return 'This classroom is already booked for this time slot.';
+        }
+
+        if ($semesterConflicts->exists()) {
+            return 'This semester already has a class scheduled during this time slot.';
+        }
+
+        if ($teacherConflicts->exists()) {
             return 'This teacher is already teaching another class during this time slot.';
         }
 
         return true; // No conflicts found
     }
+
     /**
      * Generate timetables for first half semesters (S1, S3)
      */
@@ -374,8 +363,8 @@ class TimetableController extends Controller
         // 2. Get all classrooms
         $classrooms = Classroom::all();
 
-        // 3. Generate ALL possible disponibilities once
-        $allDisponibilities = $this->generateDisponibilities($classrooms);
+        // 3. Generate disponibilities with Friday de-prioritization
+        $prioritizedDisponibilities = $this->generatePrioritizedDisponibilities($classrooms);
         $usedDisponibilities = []; // Track ALL used disponibilities globally
 
         // Track used time slots per semester
@@ -396,49 +385,101 @@ class TimetableController extends Controller
 
                     $assigned = false;
                     $attempts = 0;
-                    $maxAttempts = count($allDisponibilities);
 
-                    while (!$assigned && $attempts < $maxAttempts) {
-                        $randomIndex = array_rand($allDisponibilities);
-                        $slot = $allDisponibilities[$randomIndex];
-
-                        // Create unique keys for checks
+                    // Get all available slots (Monday-Thursday first, then Friday)
+                    $nonFridaySlots = array_filter($prioritizedDisponibilities['nonFriday'], function($slot) use ($usedDisponibilities, $usedSemesterSlots, $semester) {
                         $globalSlotKey = $slot['classroom']->id.'-'.$slot['day'].'-'.$slot['start_time'];
                         $semesterSlotKey = $slot['day'].'-'.$slot['start_time'];
 
-                        // Check if this disponibility is available globally AND for this specific semester
-                        if (!isset($usedDisponibilities[$globalSlotKey]) &&
-                            !isset($usedSemesterSlots[$semester->id][$semesterSlotKey])) {
-                            try {
-                                // Add status field to mark as unconfirmed
-                                $timetable = Timetable::create([
-                                    'course_id' => $subject->id,
-                                    'teacher_id' => $subject->teachers->first()->id,
-                                    'classroom_id' => $slot['classroom']->id,
-                                    'semester_id' => $semester->id,
-                                    'day' => $slot['day'],
-                                    'start_time' => $slot['start_time'],
-                                    'end_time' => $slot['end_time'],
-                                    'filier_id' => $filierId,
-                                    'status' => 'unconfirmed' // Mark as unconfirmed
-                                ]);
+                        return !isset($usedDisponibilities[$globalSlotKey]) &&
+                            !isset($usedSemesterSlots[$semester->id][$semesterSlotKey]);
+                    }, ARRAY_FILTER_USE_BOTH);
 
-                                $allTimetables[] = $timetable;
-                                $usedDisponibilities[$globalSlotKey] = true;
-                                $usedSemesterSlots[$semester->id][$semesterSlotKey] = true;
-                                $assigned = true;
+                    $fridaySlots = array_filter($prioritizedDisponibilities['friday'], function($slot) use ($usedDisponibilities, $usedSemesterSlots, $semester) {
+                        $globalSlotKey = $slot['classroom']->id.'-'.$slot['day'].'-'.$slot['start_time'];
+                        $semesterSlotKey = $slot['day'].'-'.$slot['start_time'];
 
-                                // Remove used disponibility to avoid reuse
-                                unset($allDisponibilities[$randomIndex]);
-                            } catch (\Exception $e) {
-                                $conflicts[] = "Error assigning {$subject->name}: ".$e->getMessage();
+                        return !isset($usedDisponibilities[$globalSlotKey]) &&
+                            !isset($usedSemesterSlots[$semester->id][$semesterSlotKey]);
+                    }, ARRAY_FILTER_USE_BOTH);
+
+                    // Try Monday-Thursday slots first, then Friday slots
+                    $availableSlots = !empty($nonFridaySlots) ? $nonFridaySlots : $fridaySlots;
+
+                    // Try each available slot with consecutive teacher selection
+                    foreach ($availableSlots as $slotIndex => $slot) {
+                        if ($assigned) break;
+
+                        // Try each teacher consecutively for this slot
+                        foreach ($subject->teachers as $teacher) {
+                            // Check if this specific teacher is available for this slot
+                            $teacherAvailable = !Timetable::where('teacher_id', $teacher->id)
+                                ->where('day', $slot['day'])
+                                ->where('start_time', $slot['start_time'])
+                                ->exists();
+
+                            if ($teacherAvailable) {
+                                $globalSlotKey = $slot['classroom']->id.'-'.$slot['day'].'-'.$slot['start_time'];
+                                $semesterSlotKey = $slot['day'].'-'.$slot['start_time'];
+
+                                // Check if slot is still available
+                                if (!isset($usedDisponibilities[$globalSlotKey]) &&
+                                    !isset($usedSemesterSlots[$semester->id][$semesterSlotKey])) {
+
+                                    try {
+                                        // Add status field to mark as unconfirmed
+                                        $timetable = Timetable::create([
+                                            'course_id' => $subject->id,
+                                            'teacher_id' => $teacher->id,
+                                            'classroom_id' => $slot['classroom']->id,
+                                            'semester_id' => $semester->id,
+                                            'day' => $slot['day'],
+                                            'start_time' => $slot['start_time'],
+                                            'end_time' => $slot['end_time'],
+                                            'filier_id' => $filierId,
+                                            'status' => 'unconfirmed' // Mark as unconfirmed
+                                        ]);
+
+                                        $allTimetables[] = $timetable;
+                                        $usedDisponibilities[$globalSlotKey] = true;
+                                        $usedSemesterSlots[$semester->id][$semesterSlotKey] = true;
+                                        $assigned = true;
+
+                                        // Remove used slot from the main arrays
+                                        if ($slot['day'] === 'Friday') {
+                                            foreach ($prioritizedDisponibilities['friday'] as $key => $fridaySlot) {
+                                                if ($fridaySlot['classroom']->id === $slot['classroom']->id &&
+                                                    $fridaySlot['day'] === $slot['day'] &&
+                                                    $fridaySlot['start_time'] === $slot['start_time']) {
+                                                    unset($prioritizedDisponibilities['friday'][$key]);
+                                                    break;
+                                                }
+                                            }
+                                        } else {
+                                            foreach ($prioritizedDisponibilities['nonFriday'] as $key => $nonFridaySlot) {
+                                                if ($nonFridaySlot['classroom']->id === $slot['classroom']->id &&
+                                                    $nonFridaySlot['day'] === $slot['day'] &&
+                                                    $nonFridaySlot['start_time'] === $slot['start_time']) {
+                                                    unset($prioritizedDisponibilities['nonFriday'][$key]);
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        break; // Break teacher loop - assignment successful
+
+                                    } catch (\Exception $e) {
+                                        // Log error but continue to next teacher
+                                        Log::warning("Failed to assign {$subject->name} with teacher {$teacher->full_name}: " . $e->getMessage());
+                                        continue;
+                                    }
+                                }
                             }
                         }
-                        $attempts++;
                     }
 
                     if (!$assigned) {
-                        $conflicts[] = "Could not assign {$subject->name} - no available slots";
+                        $conflicts[] = "Could not assign {$subject->name} - no available slots or teachers";
                     }
                 }
             }
@@ -452,7 +493,7 @@ class TimetableController extends Controller
         return response()->json([
             'success' => empty($conflicts),
             'timetables_created' => count($allTimetables),
-            'remaining_disponibilities' => count($allDisponibilities),
+            'remaining_disponibilities' => count($prioritizedDisponibilities['nonFriday']) + count($prioritizedDisponibilities['friday']),
             'conflicts' => $conflicts,
             'data' => $completeTimetables
         ]);
@@ -482,8 +523,8 @@ class TimetableController extends Controller
         // 2. Get all classrooms
         $classrooms = Classroom::all();
 
-        // 3. Generate ALL possible disponibilities once
-        $allDisponibilities = $this->generateDisponibilities($classrooms);
+        // 3. Generate disponibilities with Friday de-prioritization
+        $prioritizedDisponibilities = $this->generatePrioritizedDisponibilities($classrooms);
         $usedDisponibilities = []; // Track ALL used disponibilities globally
 
         // Track used time slots per semester
@@ -504,49 +545,101 @@ class TimetableController extends Controller
 
                     $assigned = false;
                     $attempts = 0;
-                    $maxAttempts = count($allDisponibilities);
 
-                    while (!$assigned && $attempts < $maxAttempts) {
-                        $randomIndex = array_rand($allDisponibilities);
-                        $slot = $allDisponibilities[$randomIndex];
-
-                        // Create unique keys for checks
+                    // Get all available slots (Monday-Thursday first, then Friday)
+                    $nonFridaySlots = array_filter($prioritizedDisponibilities['nonFriday'], function($slot) use ($usedDisponibilities, $usedSemesterSlots, $semester) {
                         $globalSlotKey = $slot['classroom']->id.'-'.$slot['day'].'-'.$slot['start_time'];
                         $semesterSlotKey = $slot['day'].'-'.$slot['start_time'];
 
-                        // Check if this disponibility is available globally AND for this specific semester
-                        if (!isset($usedDisponibilities[$globalSlotKey]) &&
-                            !isset($usedSemesterSlots[$semester->id][$semesterSlotKey])) {
-                            try {
-                                // Add status field to mark as unconfirmed
-                                $timetable = Timetable::create([
-                                    'course_id' => $subject->id,
-                                    'teacher_id' => $subject->teachers->first()->id,
-                                    'classroom_id' => $slot['classroom']->id,
-                                    'semester_id' => $semester->id,
-                                    'day' => $slot['day'],
-                                    'start_time' => $slot['start_time'],
-                                    'end_time' => $slot['end_time'],
-                                    'filier_id' => $filierId,
-                                    'status' => 'unconfirmed' // Mark as unconfirmed
-                                ]);
+                        return !isset($usedDisponibilities[$globalSlotKey]) &&
+                            !isset($usedSemesterSlots[$semester->id][$semesterSlotKey]);
+                    }, ARRAY_FILTER_USE_BOTH);
 
-                                $allTimetables[] = $timetable;
-                                $usedDisponibilities[$globalSlotKey] = true;
-                                $usedSemesterSlots[$semester->id][$semesterSlotKey] = true;
-                                $assigned = true;
+                    $fridaySlots = array_filter($prioritizedDisponibilities['friday'], function($slot) use ($usedDisponibilities, $usedSemesterSlots, $semester) {
+                        $globalSlotKey = $slot['classroom']->id.'-'.$slot['day'].'-'.$slot['start_time'];
+                        $semesterSlotKey = $slot['day'].'-'.$slot['start_time'];
 
-                                // Remove used disponibility to avoid reuse
-                                unset($allDisponibilities[$randomIndex]);
-                            } catch (\Exception $e) {
-                                $conflicts[] = "Error assigning {$subject->name}: ".$e->getMessage();
+                        return !isset($usedDisponibilities[$globalSlotKey]) &&
+                            !isset($usedSemesterSlots[$semester->id][$semesterSlotKey]);
+                    }, ARRAY_FILTER_USE_BOTH);
+
+                    // Try Monday-Thursday slots first, then Friday slots
+                    $availableSlots = !empty($nonFridaySlots) ? $nonFridaySlots : $fridaySlots;
+
+                    // Try each available slot with consecutive teacher selection
+                    foreach ($availableSlots as $slotIndex => $slot) {
+                        if ($assigned) break;
+
+                        // Try each teacher consecutively for this slot
+                        foreach ($subject->teachers as $teacher) {
+                            // Check if this specific teacher is available for this slot
+                            $teacherAvailable = !Timetable::where('teacher_id', $teacher->id)
+                                ->where('day', $slot['day'])
+                                ->where('start_time', $slot['start_time'])
+                                ->exists();
+
+                            if ($teacherAvailable) {
+                                $globalSlotKey = $slot['classroom']->id.'-'.$slot['day'].'-'.$slot['start_time'];
+                                $semesterSlotKey = $slot['day'].'-'.$slot['start_time'];
+
+                                // Check if slot is still available
+                                if (!isset($usedDisponibilities[$globalSlotKey]) &&
+                                    !isset($usedSemesterSlots[$semester->id][$semesterSlotKey])) {
+
+                                    try {
+                                        // Add status field to mark as unconfirmed
+                                        $timetable = Timetable::create([
+                                            'course_id' => $subject->id,
+                                            'teacher_id' => $teacher->id,
+                                            'classroom_id' => $slot['classroom']->id,
+                                            'semester_id' => $semester->id,
+                                            'day' => $slot['day'],
+                                            'start_time' => $slot['start_time'],
+                                            'end_time' => $slot['end_time'],
+                                            'filier_id' => $filierId,
+                                            'status' => 'unconfirmed' // Mark as unconfirmed
+                                        ]);
+
+                                        $allTimetables[] = $timetable;
+                                        $usedDisponibilities[$globalSlotKey] = true;
+                                        $usedSemesterSlots[$semester->id][$semesterSlotKey] = true;
+                                        $assigned = true;
+
+                                        // Remove used slot from the main arrays
+                                        if ($slot['day'] === 'Friday') {
+                                            foreach ($prioritizedDisponibilities['friday'] as $key => $fridaySlot) {
+                                                if ($fridaySlot['classroom']->id === $slot['classroom']->id &&
+                                                    $fridaySlot['day'] === $slot['day'] &&
+                                                    $fridaySlot['start_time'] === $slot['start_time']) {
+                                                    unset($prioritizedDisponibilities['friday'][$key]);
+                                                    break;
+                                                }
+                                            }
+                                        } else {
+                                            foreach ($prioritizedDisponibilities['nonFriday'] as $key => $nonFridaySlot) {
+                                                if ($nonFridaySlot['classroom']->id === $slot['classroom']->id &&
+                                                    $nonFridaySlot['day'] === $slot['day'] &&
+                                                    $nonFridaySlot['start_time'] === $slot['start_time']) {
+                                                    unset($prioritizedDisponibilities['nonFriday'][$key]);
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        break; // Break teacher loop - assignment successful
+
+                                    } catch (\Exception $e) {
+                                        // Log error but continue to next teacher
+                                        Log::warning("Failed to assign {$subject->name} with teacher {$teacher->full_name}: " . $e->getMessage());
+                                        continue;
+                                    }
+                                }
                             }
                         }
-                        $attempts++;
                     }
 
                     if (!$assigned) {
-                        $conflicts[] = "Could not assign {$subject->name} - no available slots";
+                        $conflicts[] = "Could not assign {$subject->name} - no available slots or teachers";
                     }
                 }
             }
@@ -560,10 +653,53 @@ class TimetableController extends Controller
         return response()->json([
             'success' => empty($conflicts),
             'timetables_created' => count($allTimetables),
-            'remaining_disponibilities' => count($allDisponibilities),
+            'remaining_disponibilities' => count($prioritizedDisponibilities['nonFriday']) + count($prioritizedDisponibilities['friday']),
             'conflicts' => $conflicts,
             'data' => $completeTimetables
         ]);
+    }
+
+    /**
+     * Generate disponibilities with Friday de-prioritization
+     */
+    private function generatePrioritizedDisponibilities($classrooms)
+    {
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        $timeSlots = [
+            ['start' => '09:00:00', 'end' => '12:00:00'],
+            ['start' => '14:00:00', 'end' => '17:00:00']
+        ];
+
+        $nonFridayDisponibilities = [];
+        $fridayDisponibilities = [];
+
+        foreach ($classrooms as $classroom) {
+            foreach ($days as $day) {
+                foreach ($timeSlots as $timeSlot) {
+                    $slot = [
+                        'classroom' => $classroom,
+                        'day' => $day,
+                        'start_time' => $timeSlot['start'],
+                        'end_time' => $timeSlot['end']
+                    ];
+
+                    if ($day === 'Friday') {
+                        $fridayDisponibilities[] = $slot;
+                    } else {
+                        $nonFridayDisponibilities[] = $slot;
+                    }
+                }
+            }
+        }
+
+        // Shuffle both arrays to randomize selection within priority groups
+        shuffle($nonFridayDisponibilities);
+        shuffle($fridayDisponibilities);
+
+        return [
+            'nonFriday' => $nonFridayDisponibilities,
+            'friday' => $fridayDisponibilities
+        ];
     }
 
     /**
@@ -665,5 +801,63 @@ class TimetableController extends Controller
             'success' => true,
             'message' => 'Unconfirmed timetables deleted successfully'
         ]);
+    }
+
+
+    // edit timetable
+    /**
+     * Get subjects for a specific semester
+     */
+    public function getSemesterSubjects($semesterId)
+    {
+        try {
+            $subjects = Subject::where('semester_id', $semesterId)
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json($subjects);
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve semester subjects', [
+                'semester_id' => $semesterId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve subjects: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get teachers assigned to a specific subject
+     */
+    public function getSubjectTeachers($subjectId)
+    {
+        try {
+            $subject = Subject::with(['teachers' => function($query) {
+                $query->select('teachers.id', 'teachers.full_name');
+            }])->find($subjectId);
+
+            if (!$subject) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Subject not found'
+                ], 404);
+            }
+
+            return response()->json($subject->teachers);
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve subject teachers', [
+                'subject_id' => $subjectId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve teachers: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
